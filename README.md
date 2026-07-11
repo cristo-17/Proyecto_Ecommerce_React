@@ -1,73 +1,70 @@
-# React + TypeScript + Vite
+AppCelulares - Plataforma E-Commerce (Frontend)
+Una plataforma de comercio electrónico moderna, escalable y de alto rendimiento diseñada para la venta y gestión de equipos móviles. Este proyecto implementa un frontend robusto basado en Clean Architecture y principios SOLID, preparado estructuralmente para integrarse de forma nativa con una futura API RESTful desarrollada en Java con Spring Boot.
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Tecnologías Utilizadas
+El stack tecnológico fue seleccionado bajo estrictos estándares de ingeniería de software para garantizar tipado seguro, rendimiento y mantenibilidad:
 
-Currently, two official plugins are available:
+Core: React 18 + TypeScript + Vite.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Estilos y UI: Tailwind CSS v4 + HeroUI v3.
 
-## React Compiler
+Nota Arquitectónica: Se ha aplicado una regla inquebrantable de importaciones granulares (ej. @heroui/button, @heroui/card) para maximizar el tree-shaking y optimizar el tamaño del bundle final.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Enrutamiento: React Router DOM v6/v7 (con protección de rutas por roles).
 
-## Expanding the ESLint configuration
+Formularios y Validación: React Hook Form + Zod (Type-Safe forms).
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Visualización de Datos: Recharts (para analíticas del Dashboard).
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Características Principales (Features)
+Sistema Multi-Rol Seguro: Control de acceso y renderizado condicional mediante Guards para clientes, vendedores, administradores globales y proveedores.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Dashboard Analítico Dinámico:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Admin Global: Vista panorámica de ingresos, gráficos interactivos de rendimiento de ventas (Recharts) y control de inventario de todos los proveedores.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Proveedor: Entorno aislado con métricas propias y control exclusivo sobre su stock registrado.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Catálogo Responsivo: Grilla de productos moderna y optimizada con carga diferida de imágenes (Lazy Loading) y tarjetas interactivas.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Especificaciones Técnicas Detalladas: Vista de producto con galería interactiva, chips de estado y tablas de especificaciones limpias inspiradas en diseños clásicos pero construidas con la utilidad de Tailwind.
+
+Carrito de Compras Inteligente: Panel interactivo de dos columnas, cálculos automáticos de envío gratis y un Badge de notificaciones global en el Navbar sincronizado con el estado.
+
+Checkout Optimizado: Flujo de pago de dos columnas con selección de método de entrega (Tabs), métodos de pago (RadioGroups) y resumen de pedido flotante (Sticky).
+
+Estructura del Proyecto (Clean Architecture)
+El proyecto respeta una separación estricta de responsabilidades, aislando la lógica de dominio de la interfaz de usuario:
+
+Plaintext
+app-celulares/
+├── public/ # Assets estáticos
+├── src/
+│ ├── application/ # Lógica de aplicación, Hooks personalizados y Context/Zustand
+│ ├── domain/ # Modelos (Interfaces TS), Tipos y reglas de negocio puras
+│ ├── infrastructure/ # Capa de red, configuración de Axios y servicios de API
+│ └── presentation/ # Interfaz de Usuario (UI)
+│ ├── components/ # Componentes visuales reutilizables y Guards (ProtectedRoute)
+│ ├── layouts/ # Estructuras maestras (MainLayout, DashboardLayout)
+│ ├── pages/ # Vistas principales (Catalog, Dashboard, Checkout, Login)
+│ └── router/ # Configuración centralizada de rutas (App.tsx, main.tsx)
+├── eslint.config.js # Configuración estricta de linter y React Compiler
+├── tailwind.config.js # Configuración base de Tailwind v4 y plugins
+└── package.json # Dependencias modulares y granulares
+Instrucciones de Instalación y Uso
+Sigue estos pasos para levantar el entorno de desarrollo local.
+
+1. Clonar el repositorio
+   Bash
+   git clone https://github.com/tu-usuario/app-celulares.git
+   cd app-celulares
+2. Instalar dependencias
+   Debido a la arquitectura modular de HeroUI, todas las dependencias están separadas por paquetes individuales para mantener el entorno ligero.
+
+Bash
+npm install 3. Levantar el servidor de desarrollo
+Inicia Vite con Hot Module Replacement (HMR).
+
+Bash
+npm run dev
+El proyecto estará disponible localmente, generalmente en http://localhost:5173/.
