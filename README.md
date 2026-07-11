@@ -36,7 +36,6 @@ Checkout Optimizado: Flujo de pago de dos columnas con selección de método de 
 Estructura del Proyecto (Clean Architecture)
 El proyecto respeta una separación estricta de responsabilidades, aislando la lógica de dominio de la interfaz de usuario:
 
-Plaintext
 app-celulares/
 ├── public/ # Assets estáticos
 ├── src/
@@ -51,20 +50,20 @@ app-celulares/
 ├── eslint.config.js # Configuración estricta de linter y React Compiler
 ├── tailwind.config.js # Configuración base de Tailwind v4 y plugins
 └── package.json # Dependencias modulares y granulares
+
 Instrucciones de Instalación y Uso
 Sigue estos pasos para levantar el entorno de desarrollo local.
 
 1. Clonar el repositorio
-   Bash
-   git clone https://github.com/tu-usuario/app-celulares.git
+   git clone https://github.com/cristo-17/Proyecto_Ecommerce_React.git
    cd app-celulares
+
 2. Instalar dependencias
    Debido a la arquitectura modular de HeroUI, todas las dependencias están separadas por paquetes individuales para mantener el entorno ligero.
 
-Bash
-npm install 3. Levantar el servidor de desarrollo
-Inicia Vite con Hot Module Replacement (HMR).
+npm install
 
-Bash
+3. Levantar el servidor de desarrollo
+   Inicia Vite con Hot Module Replacement (HMR).
+
 npm run dev
-El proyecto estará disponible localmente, generalmente en http://localhost:5173/.
