@@ -4,7 +4,7 @@ Una plataforma de comercio electrónico moderna, escalable y de alto rendimiento
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## Tecnologías Utilizadas
 
 El stack tecnológico fue seleccionado bajo estrictos estándares de ingeniería de software para garantizar tipado seguro, rendimiento y mantenibilidad:
 
@@ -18,25 +18,25 @@ El stack tecnológico fue seleccionado bajo estrictos estándares de ingeniería
 
 ---
 
-## ✨ Características Principales (Features)
+## Características Principales (Features)
 
-*   🔐 **Sistema Multi-Rol Seguro (RBAC):** Control de acceso estricto mediante *Guards* para CLIENTE, PROVEEDOR y ADMIN. La interfaz transmuta dinámicamente según el rol autorizado.
-*   👤 **Gestión Dinámica de Perfiles (Cliente):** 
+*   **Sistema Multi-Rol Seguro (RBAC):** Control de acceso estricto mediante *Guards* para CLIENTE, PROVEEDOR y ADMIN. La interfaz transmuta dinámicamente según el rol autorizado.
+*   **Gestión Dinámica de Perfiles (Cliente):** 
     *   Panel de gestión segura de formas de pago (tarjetas censuradas).
     *   **Zona Peligrosa:** Implementación de flujos de eliminación de cuenta ("Derecho al Olvido") con modales de confirmación crítica.
-*   🏢 **Gestión Avanzada de Proveedores (Admin):** 
+*   **Gestión Avanzada de Proveedores (Admin):** 
     *   Módulo administrativo para el control de empresas registradas.
     *   Soporte para cambios de estado (Activo/Inactivo).
     *   Simulación de **borrado en cascada** (advertencias críticas sobre la eliminación del inventario asociado).
-*   📊 **Dashboard Analítico Inteligente:** 
+*   **Dashboard Analítico Inteligente:** 
     *   **Admin:** Vista panorámica global y gráficos interactivos de rendimiento de ventas de todo el sistema.
     *   **Proveedor:** Entorno aislado con métricas propias y control exclusivo sobre su stock registrado.
-*   🛍️ **Catálogo y Detalles Técnicos:** Grilla de productos responsiva y vista de producto enfocada en la conversión, con renderizado condicional del "Call to Action" y módulo de reseñas.
-*   🛒 **Checkout Optimizado:** Flujo de pago con carrito interactivo y cálculos dinámicos.
+*   **Catálogo y Detalles Técnicos:** Grilla de productos responsiva y vista de producto enfocada en la conversión, con renderizado condicional del "Call to Action" y módulo de reseñas.
+*   **Checkout Optimizado:** Flujo de pago con carrito interactivo y cálculos dinámicos.
 
 ---
 
-## 📁 Estructura del Proyecto (Clean Architecture)
+## Estructura del Proyecto (Clean Architecture)
 
 El proyecto respeta una separación estricta de responsabilidades, aislando la lógica de negocio de la interfaz de usuario:
 
@@ -56,7 +56,7 @@ app-celulares/
 ├── tailwind.config.js      # Configuración base de Tailwind v4 y plugins
 └── package.json            # Dependencias modulares y granulares
 
-🚀 Instrucciones de Instalación y Uso
+Instrucciones de Instalación y Uso
 Sigue estos pasos para levantar el entorno de desarrollo local.
 
 1. Clonar el repositorio
