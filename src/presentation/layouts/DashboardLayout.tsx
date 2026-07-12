@@ -4,17 +4,18 @@ import { User } from "@heroui/user";
 import { Divider } from "@heroui/divider";
 import { ScrollShadow } from "@heroui/scroll-shadow";
 import { Button } from "@heroui/button";
-
-// Simulación de rol inyectado (En producción vendría de Zustand/Context)
-const CURRENT_USER_ROLE = "ADMIN";
+import { LayoutDashboard, Users, Package } from "lucide-react";
 
 export const DashboardLayout = () => {
   const navigate = useNavigate();
 
+  // Lectura del rol actual para inyectarlo en la UI
+  const userRole = localStorage.getItem("user_role") || "INVITADO";
+
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_role");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -22,7 +23,6 @@ export const DashboardLayout = () => {
       {/* Sidebar Lateral */}
       <aside className="w-64 flex flex-col bg-background border-r border-default-200">
         <div className="p-6">
-          {/* Logo clickeable hacia la tienda pública */}
           <Link
             to="/"
             className="text-2xl font-bold text-primary hover:opacity-80 transition-opacity block"
@@ -36,36 +36,42 @@ export const DashboardLayout = () => {
 
         <ScrollShadow className="flex-1 p-4">
           <nav className="flex flex-col gap-2">
+            {/* BUG CORREGIDO: Rutas limpias sin prefijos equivocados */}
             <Link
               to="/dashboard"
-              className="p-3 text-sm font-medium rounded-lg hover:bg-default-100 transition-colors"
+              className="p-3 text-sm font-medium rounded-lg hover:bg-default-100 transition-colors flex items-center gap-2"
             >
-              📊 Panel Principal
+              <LayoutDashboard size={18} /> Panel Principal
             </Link>
-            {CURRENT_USER_ROLE === "ADMIN" && (
-              <Link
-                to="/dashboard/proveedores"
-                className="p-3 text-sm font-medium rounded-lg hover:bg-default-100 transition-colors"
-              >
-                🏢 Gestión Proveedores
-              </Link>
-            )}
+
+            {/* Ruta compartida: Admin gestiona a todos, Proveedor edita su perfil */}
+            <Link
+              to="/dashboard/proveedores"
+              className="p-3 text-sm font-medium rounded-lg hover:bg-default-100 transition-colors flex items-center gap-2"
+            >
+              <Users size={18} />{" "}
+              {userRole === "ADMIN"
+                ? "Gestión Proveedores"
+                : "Perfil de Empresa"}
+            </Link>
+
             <Link
               to="/dashboard/inventario"
-              className="p-3 text-sm font-medium rounded-lg hover:bg-default-100 transition-colors"
+              className="p-3 text-sm font-medium rounded-lg hover:bg-default-100 transition-colors flex items-center gap-2"
             >
-              📱 Inventario
+              <Package size={18} /> Inventario
             </Link>
           </nav>
         </ScrollShadow>
 
         <Divider />
 
-        {/* Sección del Perfil y Logout */}
-        <div className="p-4 flex flex-col gap-4">
+        {/* Sección Fija Inferior */}
+        <div className="p-4 flex flex-col gap-4 mt-auto">
           <User
             name="Usuario Sistema"
-            description={CURRENT_USER_ROLE}
+            // BUG 3 CORREGIDO: Reemplazo del texto estático "ADMIN" por la variable
+            description={userRole}
             avatarProps={{
               src: "https://i.pravatar.cc/150?u=a04258114e29026702d",
             }}

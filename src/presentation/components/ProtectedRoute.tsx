@@ -1,6 +1,6 @@
 // src/presentation/components/ProtectedRoute.tsx
-import { Navigate, Outlet } from 'react-router-dom';
-import { RolUsuario } from '../../domain/models/appCelulares.model';
+import { Navigate, Outlet } from "react-router-dom";
+import { RolUsuario } from "../../domain/models/appCelulares.model";
 
 interface ProtectedRouteProps {
   allowedRoles?: RolUsuario[];
@@ -8,8 +8,8 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   // Simulación: En la arquitectura final estos datos vendrán de Zustand o Context
-  const token = localStorage.getItem('auth_token');
-  const userRole = localStorage.getItem('user_role') as RolUsuario | null;
+  const token = localStorage.getItem("auth_token");
+  const userRole = localStorage.getItem("user_role") as RolUsuario | null;
 
   // 1. Si no hay token, enviar al login
   if (!token) {

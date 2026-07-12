@@ -6,6 +6,7 @@ import { Input } from "@heroui/input";
 import { Tabs, Tab } from "@heroui/tabs";
 import { RadioGroup, Radio } from "@heroui/radio";
 import { Divider } from "@heroui/divider";
+import { Home, Store } from "lucide-react";
 
 export const Checkout = () => {
   // Simulamos el subtotal que vendría del contexto/estado global
@@ -47,7 +48,15 @@ export const Checkout = () => {
                 variant="solid"
                 className="mb-6"
               >
-                <Tab key="domicilio" title="🏠 A Domicilio">
+                <Tab
+                  key="domicilio"
+                  title={
+                    <div className="flex items-center gap-2">
+                      <Home size={18} />
+                      <span>A Domicilio</span>
+                    </div>
+                  }
+                >
                   <div className="mt-4 space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Input
@@ -73,7 +82,15 @@ export const Checkout = () => {
                     />
                   </div>
                 </Tab>
-                <Tab key="recoger" title="🏪 Recoger en Tienda">
+                <Tab
+                  key="recoger"
+                  title={
+                    <div className="flex items-center gap-2">
+                      <Store size={18} />
+                      <span>Recoger en Tienda</span>
+                    </div>
+                  }
+                >
                   <div className="mt-4 p-4 bg-gray-100 rounded-lg text-sm text-gray-700">
                     <p className="font-semibold">
                       Sucursal Principal AppCelulares

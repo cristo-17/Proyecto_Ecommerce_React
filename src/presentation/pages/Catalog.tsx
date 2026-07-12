@@ -1,10 +1,9 @@
 // src/presentation/pages/Catalog.tsx
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/card";
 import { Image } from "@heroui/image";
 import { Button } from "@heroui/button";
 
-// 1. Definición del Tipo para el Mock Data
 interface CelularMock {
   id: string;
   marca: string;
@@ -13,7 +12,6 @@ interface CelularMock {
   imagenUrl: string;
 }
 
-// 2. Mock Data: Catálogo de productos de prueba
 const MOCK_PRODUCTS: CelularMock[] = [
   {
     id: "cel-001",
@@ -21,7 +19,7 @@ const MOCK_PRODUCTS: CelularMock[] = [
     modelo: "Galaxy S24 Ultra - BMW M Edition",
     precio: 1450.0,
     imagenUrl:
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTzYIL0_TCTRoz9A60G6g99yx6tOtYPooFGH4XrU7kn9vfKDGBEoZt67x0&s=10",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6idTnBxqn8EtuoOsQ4xT8eviWVTdS9EVix0WzyMavj0EbgA_yRw15nxc&s=10",
   },
   {
     id: "cel-002",
@@ -29,7 +27,7 @@ const MOCK_PRODUCTS: CelularMock[] = [
     modelo: "iPhone 15 Pro Max",
     precio: 1299.99,
     imagenUrl:
-      "https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=800&auto=format&fit=crop",
+      "https://http2.mlstatic.com/D_Q_NP_801419-MLA93327187554_092025-O.webp",
   },
   {
     id: "cel-003",
@@ -37,7 +35,7 @@ const MOCK_PRODUCTS: CelularMock[] = [
     modelo: "Pixel 8 Pro",
     precio: 999.0,
     imagenUrl:
-      "https://images.unsplash.com/photo-1696446701796-da61225697cc?q=80&w=800&auto=format&fit=crop",
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQWYgGhIm2DEw1NUtWAXF0G91N4MrZ3XCu0s-lG0EXuOKppq3_4RAQnQj4&s=10",
   },
   {
     id: "cel-004",
@@ -45,14 +43,15 @@ const MOCK_PRODUCTS: CelularMock[] = [
     modelo: "14 Ultra",
     precio: 1199.5,
     imagenUrl:
-      "https://images.unsplash.com/photo-1712244654559-67ce42211ea1?q=80&w=800&auto=format&fit=crop",
+      "https://http2.mlstatic.com/D_NQ_NP_788031-MLU77409006804_072024-O.webp",
   },
 ];
 
 export const Catalog = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="container mx-auto px-4 py-8">
-      {/* Encabezado del Catálogo */}
       <div className="mb-10 text-center">
         <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">
           Catálogo de Equipos
@@ -63,14 +62,12 @@ export const Catalog = () => {
         </p>
       </div>
 
-      {/* Grilla Responsiva de Productos */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {MOCK_PRODUCTS.map((product) => (
           <Card
             key={product.id}
             className="w-full flex flex-col bg-white shadow-sm hover:shadow-lg transition-shadow border border-gray-100"
           >
-            {/* Cabecera del Card: Imagen */}
             <CardHeader className="p-0 flex-col items-center bg-gray-50 overflow-hidden rounded-t-xl h-56">
               <Image
                 alt={product.modelo}
@@ -81,7 +78,6 @@ export const Catalog = () => {
               />
             </CardHeader>
 
-            {/* Cuerpo del Card: Información */}
             <CardBody className="pb-2 pt-5 px-5 flex flex-col flex-1">
               <p className="text-xs uppercase font-bold text-gray-400 tracking-wider mb-1">
                 {product.marca}
@@ -90,7 +86,6 @@ export const Catalog = () => {
                 {product.modelo}
               </h4>
 
-              {/* Spacer para empujar el precio siempre al fondo si el título es corto */}
               <div className="mt-auto">
                 <p className="text-2xl font-black text-primary">
                   $
@@ -102,15 +97,13 @@ export const Catalog = () => {
               </div>
             </CardBody>
 
-            {/* Pie del Card: Botón de Acción */}
             <CardFooter className="px-5 pb-5 pt-3">
+              {/* Botón estándar de detalles para TODOS los usuarios */}
               <Button
-                as={Link}
-                to={`/celular/${product.id}`}
+                onPress={() => navigate("/producto/" + product.id)}
                 color="primary"
-                variant="solid"
-                className="w-full font-bold shadow-md shadow-primary/20"
-                size="lg"
+                variant="bordered"
+                className="font-bold border-2 w-full"
               >
                 Ver detalles
               </Button>

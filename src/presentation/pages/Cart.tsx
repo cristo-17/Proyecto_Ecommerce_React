@@ -7,6 +7,7 @@ import { Chip } from "@heroui/chip";
 import { Progress } from "@heroui/progress";
 import { Alert } from "@heroui/alert";
 import { Divider } from "@heroui/divider";
+import { Truck } from "lucide-react";
 
 interface CartItem {
   id: string;
@@ -23,14 +24,16 @@ const MOCK_CART: CartItem[] = [
     modelo: "Samsung Galaxy S24 Ultra - BMW M Edition",
     precio: 1450,
     cantidad: 1,
-    imagen: "https://via.placeholder.com/150?text=S24+BMW",
+    imagen:
+      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6idTnBxqn8EtuoOsQ4xT8eviWVTdS9EVix0WzyMavj0EbgA_yRw15nxc&s=10",
   },
   {
     id: "2",
     modelo: "iPhone 15 Pro Max",
     precio: 1200,
     cantidad: 2,
-    imagen: "https://via.placeholder.com/150?text=iPhone+15",
+    imagen:
+      "https://http2.mlstatic.com/D_Q_NP_801419-MLA93327187554_092025-O.webp",
   },
 ];
 
@@ -124,7 +127,7 @@ export const Cart = () => {
         <div className="lg:col-span-8 flex flex-col gap-4">
           <Card className="bg-white shadow-sm border border-gray-100">
             <CardBody className="p-4 flex flex-row items-center gap-3">
-              <span className="text-xl">🚚</span>
+              <Truck size={24} className="text-default-600" />
               <div>
                 <p className="font-semibold text-gray-800">Envío a Domicilio</p>
                 <p className="text-sm text-gray-500">

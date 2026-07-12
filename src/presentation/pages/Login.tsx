@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
-import { RolUsuario } from "../../domain/models/appCelulares.model";
 
 // 1. Esquema de Validación Estricto (Zod)
 const loginSchema = z.object({
@@ -17,30 +16,29 @@ const loginSchema = z.object({
   password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
 });
 
-// Inferimos el tipo TypeScript directamente del esquema
 type LoginFormData = z.infer<typeof loginSchema>;
 
-// 2. Mock Data: Semilla temporal de usuarios para pruebas
+// 2. Mock Data (Alineado con el diccionario de roles: ADMIN, PROVEEDOR, CLIENTE)
 const MOCK_USERS = [
   {
     id: "usr-001",
     email: "admin@test.com",
     password: "password123",
-    rol: "ADMIN" as RolUsuario,
+    rol: "ADMIN",
     nombre: "Administrador Principal",
   },
   {
     id: "usr-002",
-    email: "vendedor@test.com",
+    email: "proveedor@test.com",
     password: "password123",
-    rol: "VENDEDOR" as RolUsuario,
-    nombre: "Juan Vendedor",
+    rol: "PROVEEDOR",
+    nombre: "Samsung Global",
   },
   {
     id: "usr-003",
     email: "cliente@test.com",
     password: "password123",
-    rol: "CLIENTE" as RolUsuario,
+    rol: "CLIENTE",
     nombre: "Cliente Frecuente",
   },
 ];
@@ -49,44 +47,36 @@ export const Login = () => {
   const navigate = useNavigate();
   const [authError, setAuthError] = useState<string | null>(null);
 
-  // 3. Configuración de react-hook-form con Zod
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    mode: "onTouched", // Valida cuando el usuario sale del input
+    mode: "onTouched",
   });
 
-  // 4. Lógica de Autenticación y Ruteo Dinámico
   const onSubmit = async (data: LoginFormData) => {
     setAuthError(null);
+    await new Promise((resolve) => setTimeout(resolve, 800)); // Delay simulado
 
-    // Simulamos un pequeño delay de red
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    // Búsqueda estricta en nuestra semilla de datos
     const userFound = MOCK_USERS.find(
       (u) => u.email === data.email && u.password === data.password,
     );
 
     if (userFound) {
-      // Guardamos la sesión temporal
       localStorage.setItem("auth_token", `simulated_token_${userFound.id}`);
       localStorage.setItem("user_role", userFound.rol);
 
-      // Redirección basada en el rol del dominio
+      // BUG 1 CORREGIDO: Redirección estricta y limpia
       switch (userFound.rol) {
         case "ADMIN":
-          navigate("/dashboard"); // Panel principal de administración
-          break;
         case "PROVEEDOR":
-          navigate("/admin/proveedores"); // Área de gestión permitida para proveedores
+          navigate("/dashboard"); // Redirige a la zona privada de gestión
           break;
         case "CLIENTE":
         default:
-          navigate("/checkout"); // Área privada del cliente
+          navigate("/"); // Redirige a la tienda para seguir comprando
           break;
       }
     } else {
@@ -106,14 +96,12 @@ export const Login = () => {
           </p>
         </div>
 
-        {/* Alerta de Error General */}
         {authError && (
           <div className="mb-6 p-3 bg-danger-50 text-danger-600 rounded-lg text-sm font-medium text-center border border-danger-200">
             {authError}
           </div>
         )}
 
-        {/* 5. Integración del Formulario con HeroUI */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           <Input
             {...register("email")}
@@ -124,9 +112,6 @@ export const Login = () => {
             isInvalid={!!errors.email}
             errorMessage={errors.email?.message}
             fullWidth
-            classNames={{
-              inputWrapper: "bg-default-50 hover:bg-default-100",
-            }}
           />
 
           <Input
@@ -138,9 +123,6 @@ export const Login = () => {
             isInvalid={!!errors.password}
             errorMessage={errors.password?.message}
             fullWidth
-            classNames={{
-              inputWrapper: "bg-default-50 hover:bg-default-100",
-            }}
           />
 
           <Button
@@ -150,11 +132,18 @@ export const Login = () => {
             fullWidth
             size="lg"
             isLoading={isSubmitting}
-            className="font-semibold shadow-md"
           >
             {isSubmitting ? "Verificando..." : "Iniciar Sesión"}
           </Button>
         </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-xs text-default-400">
+            Credenciales: admin@test.com / proveedor@test.com
+            <br />
+            Pass: password123
+          </p>
+        </div>
       </div>
     </div>
   );

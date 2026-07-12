@@ -61,7 +61,7 @@ export interface Celular {
   marcaId: string;
   categoriaId: string;
   precio: number;
-  especificaciones: string; // JSON string o tipo anidado
+  especificaciones: string;
   proveedorId: string;
 }
 
@@ -106,4 +106,57 @@ export interface Despacho {
   transportista: string;
   numeroSeguimiento: string;
   fechaEstimada: Date;
+}
+
+export interface Product {
+  id: string;
+  marca: string;
+  modelo: string;
+  precio: number;
+  stock: number;
+  imagenUrl: string;
+  proveedor: string;
+  especificaciones: {
+    ram: string;
+    almacenamiento: string;
+    pantalla: string;
+    procesador: string;
+    camaraPrincipal: string;
+    bateria: string;
+  };
+}
+
+export interface Resena {
+  id: string;
+  celularId: string;
+  autorId: string;
+  autorNombre: string;
+  calificacion: number; // 1 a 5
+  comentario: string;
+  fecha: Date;
+}
+
+export interface FormaPago {
+  id: string;
+  usuarioId: string;
+  numeroTarjeta: string; // Formato censurado: "**** **** **** 1234"
+  titular: string;
+  fechaExpiracion: string; // Formato: "MM/YY"
+}
+
+export const EstadoProveedor = {
+  ACTIVO: 'ACTIVO',
+  INACTIVO: 'INACTIVO'
+} as const;
+
+export type EstadoProveedor = (typeof EstadoProveedor)[keyof typeof EstadoProveedor];
+
+export interface Proveedor {
+  id: string;
+  razonSocial: string;
+  ruc: string;
+  emailContacto: string;
+  telefono: string;
+  direccion?: string; // Para alinear con la UI
+  estado: EstadoProveedor;
 }
