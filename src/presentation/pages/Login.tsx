@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
+import { httpClient } from "../../infrastructure/api/httpClient";
 
 // 1. Esquema de Validación Estricto (Zod)
 const loginSchema = z.object({
@@ -17,31 +18,6 @@ const loginSchema = z.object({
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
-
-// 2. Mock Data (Alineado con el diccionario de roles: ADMIN, PROVEEDOR, CLIENTE)
-const MOCK_USERS = [
-  {
-    id: "usr-001",
-    email: "admin@test.com",
-    password: "password123",
-    rol: "ADMIN",
-    nombre: "Administrador Principal",
-  },
-  {
-    id: "usr-002",
-    email: "proveedor@test.com",
-    password: "password123",
-    rol: "PROVEEDOR",
-    nombre: "Samsung Global",
-  },
-  {
-    id: "usr-003",
-    email: "cliente@test.com",
-    password: "password123",
-    rol: "CLIENTE",
-    nombre: "Cliente Frecuente",
-  },
-];
 
 export const Login = () => {
   const navigate = useNavigate();
@@ -58,30 +34,34 @@ export const Login = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     setAuthError(null);
-    await new Promise((resolve) => setTimeout(resolve, 800)); // Delay simulado
+    
+    try {
+      // Llamada real al backend de Spring Boot (http://localhost:8080/api/auth/login)
+      const response = await httpClient.post("/auth/login", data);
+      
+      // Extraemos los datos reales que envía Java
+      const { token, rol, nombre } = response.data;
 
-    const userFound = MOCK_USERS.find(
-      (u) => u.email === data.email && u.password === data.password,
-    );
+      // Guardamos en localStorage (Tu ProtectedRoute usará esto)
+      localStorage.setItem("auth_token", token);
+      localStorage.setItem("user_role", rol);
+      localStorage.setItem("user_name", nombre);
 
-    if (userFound) {
-      localStorage.setItem("auth_token", `simulated_token_${userFound.id}`);
-      localStorage.setItem("user_role", userFound.rol);
-
-      // BUG 1 CORREGIDO: Redirección estricta y limpia
-      switch (userFound.rol) {
+      // Redirección estricta basada en el rol real
+      switch (rol) {
         case "ADMIN":
         case "PROVEEDOR":
-          navigate("/dashboard"); // Redirige a la zona privada de gestión
+          navigate("/dashboard"); 
           break;
         case "CLIENTE":
         default:
-          navigate("/"); // Redirige a la tienda para seguir comprando
+          navigate("/"); 
           break;
       }
-    } else {
+        } catch {
+      // Si Spring Boot devuelve 401 (No autorizado), mostramos el error visual
       setAuthError(
-        "Credenciales incorrectas. Verifica tu correo o contraseña.",
+        "Credenciales incorrectas. Verifica tu correo o contraseña."
       );
     }
   };
@@ -139,9 +119,9 @@ export const Login = () => {
 
         <div className="mt-6 text-center">
           <p className="text-xs text-default-400">
-            Credenciales: admin@test.com / proveedor@test.com
+            Credenciales reales (Base de Datos): admin@test.com
             <br />
-            Pass: password123
+            Pass: 123456
           </p>
         </div>
       </div>

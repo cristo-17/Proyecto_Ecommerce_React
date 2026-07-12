@@ -2,7 +2,7 @@
 import axios from 'axios';
 
 // En desarrollo apuntará a localhost:3000 (json-server), luego al de Spring Boot.
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 
 export const httpClient = axios.create({
   baseURL: API_BASE_URL,
