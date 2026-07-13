@@ -1,4 +1,5 @@
 // src/presentation/layouts/MainLayout.tsx
+import { useState } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { Navbar, NavbarBrand, NavbarContent, NavbarItem } from "@heroui/navbar";
 import { Button } from "@heroui/button";
@@ -6,8 +7,12 @@ import { Input } from "@heroui/input";
 import { Badge } from "@heroui/badge";
 import { ShoppingCart, Package, Settings, Search } from "lucide-react";
 
+// Importación del nuevo Footer
+import { Footer } from "../components/Footer";
+
 export const MainLayout = () => {
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Lectura del rol y datos simulados de sesión
   const userRole = localStorage.getItem("user_role") || "INVITADO";
@@ -18,6 +23,13 @@ export const MainLayout = () => {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("user_role");
     navigate("/login");
+  };
+
+  // Manejador del buscador funcional
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim() !== "") {
+      navigate(`/?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   const renderNavActions = () => {
@@ -53,7 +65,6 @@ export const MainLayout = () => {
               </span>
             </NavbarItem>
             <NavbarItem>
-              {/* BUG 2 CORREGIDO: Botón convertido en Link hacia /perfil */}
               <Button
                 as={Link}
                 to="/perfil"
@@ -181,8 +192,11 @@ export const MainLayout = () => {
                 input: "text-small",
                 inputWrapper: "font-normal text-default-500 bg-default-400/20",
               }}
-              placeholder="Buscar marcas, modelos..."
+              placeholder="Buscar marcas, modelos... (Presiona Enter)"
               size="sm"
+              value={searchQuery}
+              onValueChange={setSearchQuery}
+              onKeyDown={handleSearch}
               startContent={
                 <Search
                   size={18}
@@ -201,10 +215,8 @@ export const MainLayout = () => {
         <Outlet />
       </main>
 
-      <footer className="w-full bg-default-100 py-6 text-center text-default-500 text-sm mt-auto">
-        © {new Date().getFullYear()} AppCelulares. Todos los derechos
-        reservados.
-      </footer>
+      {/* Renderización del Footer Profesional */}
+      <Footer />
     </div>
   );
 };

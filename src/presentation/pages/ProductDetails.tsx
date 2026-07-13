@@ -5,8 +5,15 @@ import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
 import { Image } from "@heroui/image";
 import { Divider } from "@heroui/divider";
+import { Alert } from "@heroui/alert";
 import { MessageSquare, Star } from "lucide-react";
-import { Zap, Package } from "lucide-react";
+import {
+  Zap,
+  Package,
+  ShoppingCart,
+  ShieldCheck,
+  CreditCard,
+} from "lucide-react";
 import { ReviewsModal } from "../components/reviews/ReviewsModal";
 
 const MOCK_PRODUCT = {
@@ -42,8 +49,18 @@ export const ProductDetails = () => {
   // Estado para el Modal de Reseñas
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
 
+  // Estado para la alerta de Agregar al Carrito
+  const [isAdded, setIsAdded] = useState(false);
+
   // Lectura del rol actual de la sesión
   const userRole = localStorage.getItem("user_role") || "INVITADO";
+
+  const handleAddToCart = () => {
+    setIsAdded(true);
+    setTimeout(() => {
+      setIsAdded(false);
+    }, 3000);
+  };
 
   const renderActionButton = () => {
     switch (userRole) {
@@ -67,11 +84,13 @@ export const ProductDetails = () => {
       case "CLIENTE":
         return (
           <Button
+            onPress={handleAddToCart}
             color="primary"
             size="lg"
             className="w-full h-16 text-lg font-bold shadow-lg shadow-primary/30 mt-4"
+            startContent={<ShoppingCart size={24} />}
           >
-            🛒 Agregar al carrito
+            Agregar al carrito
           </Button>
         );
 
@@ -96,6 +115,17 @@ export const ProductDetails = () => {
 
   return (
     <>
+      {/* Alerta flotante superior derecha */}
+      {isAdded && (
+        <div className="fixed top-6 right-6 z-50 animate-appearance-in">
+          <Alert
+            color="success"
+            title="¡Agregado al carrito!"
+            description="El equipo se ha añadido a tu bolsa de compras."
+          />
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           {/* COLUMNA IZQUIERDA: Galería de Imágenes */}
@@ -205,13 +235,16 @@ export const ProductDetails = () => {
             {/* Garantía */}
             <div className="flex flex-col gap-3 mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
               <div className="flex items-center gap-3">
-                <span className="text-xl">🛡️</span>
+                <ShieldCheck
+                  size={24}
+                  className="text-gray-600 flex-shrink-0"
+                />
                 <p className="text-sm text-gray-700">
                   Garantía oficial de 12 meses con la marca.
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <span className="text-xl">💳</span>
+                <CreditCard size={24} className="text-gray-600 flex-shrink-0" />
                 <p className="text-sm text-gray-700">
                   Aceptamos todas las tarjetas de crédito y billeteras
                   digitales.

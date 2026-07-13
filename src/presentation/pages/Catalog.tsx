@@ -1,8 +1,9 @@
 // src/presentation/pages/Catalog.tsx
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/card";
 import { Image } from "@heroui/image";
 import { Button } from "@heroui/button";
+import { SearchX } from "lucide-react";
 
 interface CelularMock {
   id: string;
@@ -49,68 +50,101 @@ const MOCK_PRODUCTS: CelularMock[] = [
 
 export const Catalog = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Extraemos el parámetro de búsqueda
+  const query = searchParams.get("q") || "";
+
+  // Filtramos la lista basándonos en la marca o el modelo (ignorando mayúsculas)
+  const filteredProducts = MOCK_PRODUCTS.filter((product) => {
+    const queryLower = query.toLowerCase();
+    return (
+      product.marca.toLowerCase().includes(queryLower) ||
+      product.modelo.toLowerCase().includes(queryLower)
+    );
+  });
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-10 text-center">
         <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">
-          Catálogo de Equipos
+          {query ? `Resultados para "${query}"` : "Catálogo de Equipos"}
         </h1>
         <p className="text-gray-500 max-w-2xl mx-auto">
-          Descubre nuestra selección de smartphones de gama alta con las mejores
-          especificaciones del mercado.
+          {query
+            ? `Se encontraron ${filteredProducts.length} equipos coincidiendo con tu búsqueda.`
+            : "Descubre nuestra selección de smartphones de gama alta con las mejores especificaciones del mercado."}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {MOCK_PRODUCTS.map((product) => (
-          <Card
-            key={product.id}
-            className="w-full flex flex-col bg-white shadow-sm hover:shadow-lg transition-shadow border border-gray-100"
-          >
-            <CardHeader className="p-0 flex-col items-center bg-gray-50 overflow-hidden rounded-t-xl h-56">
-              <Image
-                alt={product.modelo}
-                className="object-contain w-full h-full p-4 hover:scale-105 transition-transform duration-300 mix-blend-multiply"
-                src={product.imagenUrl}
-                radius="none"
-                loading="lazy"
-              />
-            </CardHeader>
+      {/* Manejo de estado vacío (Empty State) */}
+      {filteredProducts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+          <div className="bg-gray-100 p-6 rounded-full text-gray-400 mb-6">
+            <SearchX size={48} />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            No encontramos equipos
+          </h2>
+          <p className="text-gray-500 max-w-md mx-auto mb-6">
+            No hay resultados que coincidan con "{query}". Intenta buscar con
+            otros términos, verifica la ortografía o navega por nuestro catálogo
+            completo.
+          </p>
+          <Button color="primary" variant="flat" onPress={() => navigate("/")}>
+            Ver todo el catálogo
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {filteredProducts.map((product) => (
+            <Card
+              key={product.id}
+              className="w-full flex flex-col bg-white shadow-sm hover:shadow-lg transition-shadow border border-gray-100"
+            >
+              <CardHeader className="p-0 flex-col items-center bg-gray-50 overflow-hidden rounded-t-xl h-56">
+                <Image
+                  alt={product.modelo}
+                  className="object-contain w-full h-full p-4 hover:scale-105 transition-transform duration-300 mix-blend-multiply"
+                  src={product.imagenUrl}
+                  radius="none"
+                  loading="lazy"
+                />
+              </CardHeader>
 
-            <CardBody className="pb-2 pt-5 px-5 flex flex-col flex-1">
-              <p className="text-xs uppercase font-bold text-gray-400 tracking-wider mb-1">
-                {product.marca}
-              </p>
-              <h4 className="font-bold text-lg text-gray-900 leading-tight mb-3 line-clamp-2">
-                {product.modelo}
-              </h4>
-
-              <div className="mt-auto">
-                <p className="text-2xl font-black text-primary">
-                  $
-                  {product.precio.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+              <CardBody className="pb-2 pt-5 px-5 flex flex-col flex-1">
+                <p className="text-xs uppercase font-bold text-gray-400 tracking-wider mb-1">
+                  {product.marca}
                 </p>
-              </div>
-            </CardBody>
+                <h4 className="font-bold text-lg text-gray-900 leading-tight mb-3 line-clamp-2">
+                  {product.modelo}
+                </h4>
 
-            <CardFooter className="px-5 pb-5 pt-3">
-              {/* Botón estándar de detalles para TODOS los usuarios */}
-              <Button
-                onPress={() => navigate("/producto/" + product.id)}
-                color="primary"
-                variant="bordered"
-                className="font-bold border-2 w-full"
-              >
-                Ver detalles
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+                <div className="mt-auto">
+                  <p className="text-2xl font-black text-primary">
+                    $
+                    {product.precio.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
+                </div>
+              </CardBody>
+
+              <CardFooter className="px-5 pb-5 pt-3">
+                <Button
+                  onPress={() => navigate("/producto/" + product.id)}
+                  color="primary"
+                  variant="bordered"
+                  className="font-bold border-2 w-full"
+                >
+                  Ver detalles
+                </Button>
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

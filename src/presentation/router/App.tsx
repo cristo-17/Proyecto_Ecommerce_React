@@ -18,6 +18,8 @@ import { ClientProfile } from "../pages/ClientProfile";
 import { Dashboard } from "../pages/Dashboard";
 import { ProveedorForm } from "../pages/ProveedorForm";
 import { ProviderDashboard } from "../pages/ProviderDashboard";
+import { PrivacyPolicy } from "../pages/PrivacyPolicy";
+import { TermsOfService } from "../pages/TermsOfService";
 import { NotFound } from "../pages/NotFound";
 
 export const AppRouter = () => {
@@ -37,6 +39,8 @@ export const AppRouter = () => {
           <Route index element={<Catalog />} />
           <Route path="producto/:id" element={<ProductDetails />} />
           <Route path="cart" element={<Cart />} />
+          <Route path="privacidad" element={<PrivacyPolicy />} />
+          <Route path="terminos" element={<TermsOfService />} />
 
           {/* Rutas Protegidas de Compra (Solo CLIENTE y ADMIN) */}
           <Route
