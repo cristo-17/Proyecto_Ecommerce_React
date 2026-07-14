@@ -41,15 +41,19 @@ export const MainLayout = () => {
               <Button
                 as={Link}
                 to="/login"
-                color="primary"
-                variant="flat"
-                className="font-medium"
+                color="default"
+                variant="light"
+                className="font-medium text-zinc-600 hover:text-zinc-900"
               >
                 Iniciar Sesión
               </Button>
             </NavbarItem>
             <NavbarItem>
-              <Button color="primary" variant="solid" className="font-medium">
+              <Button
+                color="default"
+                variant="solid"
+                className="font-medium bg-zinc-900 text-white"
+              >
                 Regístrate
               </Button>
             </NavbarItem>
@@ -60,7 +64,7 @@ export const MainLayout = () => {
         return (
           <div className="flex items-center gap-4">
             <NavbarItem className="hidden sm:flex">
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-zinc-500">
                 Hola, {userName}
               </span>
             </NavbarItem>
@@ -68,8 +72,9 @@ export const MainLayout = () => {
               <Button
                 as={Link}
                 to="/perfil"
+                color="default"
                 variant="light"
-                className="font-medium"
+                className="font-medium text-zinc-600 hover:text-zinc-900"
               >
                 Mi Perfil
               </Button>
@@ -84,10 +89,10 @@ export const MainLayout = () => {
                 <Button
                   as={Link}
                   to="/cart"
-                  color="primary"
-                  variant="flat"
-                  className="font-medium"
-                  startContent={<ShoppingCart size={18} />}
+                  color="default"
+                  variant="bordered"
+                  className="font-medium border-zinc-200/60 text-zinc-900 hover:bg-zinc-50"
+                  startContent={<ShoppingCart size={18} strokeWidth={1.5} />}
                 >
                   Carrito
                 </Button>
@@ -98,7 +103,7 @@ export const MainLayout = () => {
                 onPress={handleLogout}
                 color="danger"
                 variant="light"
-                className="font-medium"
+                className="font-medium text-zinc-500 hover:text-danger"
               >
                 Cerrar Sesión
               </Button>
@@ -110,7 +115,7 @@ export const MainLayout = () => {
         return (
           <div className="flex items-center gap-4">
             <NavbarItem className="hidden sm:flex">
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-zinc-500">
                 Hola, {userName}
               </span>
             </NavbarItem>
@@ -118,10 +123,10 @@ export const MainLayout = () => {
               <Button
                 as={Link}
                 to="/dashboard"
-                color="secondary"
-                variant="flat"
-                className="font-medium"
-                startContent={<Package size={18} />}
+                color="default"
+                variant="bordered"
+                className="font-medium border-zinc-200/60 text-zinc-900 hover:bg-zinc-50"
+                startContent={<Package size={18} strokeWidth={1.5} />}
               >
                 Mi Inventario
               </Button>
@@ -131,7 +136,7 @@ export const MainLayout = () => {
                 onPress={handleLogout}
                 color="danger"
                 variant="light"
-                className="font-medium"
+                className="font-medium text-zinc-500 hover:text-danger"
               >
                 Cerrar Sesión
               </Button>
@@ -148,8 +153,8 @@ export const MainLayout = () => {
                 to="/dashboard"
                 color="default"
                 variant="solid"
-                className="bg-gray-900 text-white font-medium hover:bg-gray-800 transition-colors"
-                startContent={<Settings size={18} />}
+                className="bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors"
+                startContent={<Settings size={18} strokeWidth={1.5} />}
               >
                 Panel Admin
               </Button>
@@ -159,7 +164,7 @@ export const MainLayout = () => {
                 onPress={handleLogout}
                 color="danger"
                 variant="light"
-                className="font-medium"
+                className="font-medium text-zinc-500 hover:text-danger"
               >
                 Cerrar Sesión
               </Button>
@@ -173,12 +178,15 @@ export const MainLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Navbar maxWidth="xl" isBordered>
+    <div className="min-h-screen bg-white flex flex-col font-sans">
+      <Navbar
+        maxWidth="xl"
+        className="py-2 border-b border-zinc-100 bg-white/80 backdrop-blur-md"
+      >
         <NavbarBrand>
           <Link
             to="/"
-            className="font-bold text-inherit text-xl text-primary hover:opacity-80 transition-opacity"
+            className="font-bold text-inherit text-xl text-zinc-900 tracking-tight hover:opacity-70 transition-opacity"
           >
             AppCelulares
           </Link>
@@ -187,10 +195,12 @@ export const MainLayout = () => {
         <NavbarContent className="hidden md:flex gap-4 w-full" justify="center">
           <NavbarItem className="w-full max-w-lg">
             <Input
+              variant="underlined"
               classNames={{
                 base: "w-full",
-                input: "text-small",
-                inputWrapper: "font-normal text-default-500 bg-default-400/20",
+                input: "text-sm text-zinc-900 placeholder:text-zinc-400",
+                inputWrapper:
+                  "font-normal shadow-none border-zinc-200 hover:border-zinc-300 focus-within:border-zinc-900",
               }}
               placeholder="Buscar marcas, modelos... (Presiona Enter)"
               size="sm"
@@ -199,8 +209,9 @@ export const MainLayout = () => {
               onKeyDown={handleSearch}
               startContent={
                 <Search
-                  size={18}
-                  className="text-default-400 pointer-events-none flex-shrink-0"
+                  size={16}
+                  strokeWidth={1.5}
+                  className="text-zinc-400 pointer-events-none flex-shrink-0 mb-1"
                 />
               }
               type="search"
@@ -211,7 +222,7 @@ export const MainLayout = () => {
         <NavbarContent justify="end">{renderNavActions()}</NavbarContent>
       </Navbar>
 
-      <main className="container mx-auto max-w-7xl px-4 sm:px-6 flex-grow py-8">
+      <main className="container mx-auto max-w-7xl px-4 sm:px-6 flex-grow py-12">
         <Outlet />
       </main>
 

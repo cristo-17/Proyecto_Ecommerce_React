@@ -66,16 +66,17 @@ export const ProductDetails = () => {
     switch (userRole) {
       case "INVITADO":
         return (
-          <div className="mt-4 flex flex-col gap-2">
+          <div className="mt-6 flex flex-col gap-3">
             <Button
               onPress={() => navigate("/login")}
               color="default"
               size="lg"
-              className="w-full h-16 text-lg font-bold shadow-md bg-gray-200 text-gray-800 hover:bg-gray-300"
+              variant="flat"
+              className="w-full h-16 text-lg font-medium bg-zinc-100 text-zinc-900 hover:bg-zinc-200 transition-colors"
             >
               Iniciar sesión para comprar
             </Button>
-            <p className="text-center text-sm text-gray-500 font-medium">
+            <p className="text-center text-sm text-zinc-500 font-light tracking-wide">
               Regístrate de forma segura para adquirir este equipo.
             </p>
           </div>
@@ -85,10 +86,10 @@ export const ProductDetails = () => {
         return (
           <Button
             onPress={handleAddToCart}
-            color="primary"
+            color="default"
             size="lg"
-            className="w-full h-16 text-lg font-bold shadow-lg shadow-primary/30 mt-4"
-            startContent={<ShoppingCart size={24} />}
+            className="w-full h-16 text-lg font-medium bg-zinc-900 text-white hover:bg-zinc-800 transition-colors shadow-none mt-6"
+            startContent={<ShoppingCart size={22} strokeWidth={1.5} />}
           >
             Agregar al carrito
           </Button>
@@ -97,11 +98,12 @@ export const ProductDetails = () => {
       case "PROVEEDOR":
       case "ADMIN":
         return (
-          <div className="mt-4">
+          <div className="mt-6">
             <Button
               isDisabled
               size="lg"
-              className="w-full h-16 text-md font-semibold bg-gray-100 text-gray-400"
+              variant="flat"
+              className="w-full h-16 text-md font-medium bg-zinc-50 text-zinc-400 shadow-none"
             >
               Modo visualización (Solo clientes pueden comprar)
             </Button>
@@ -126,35 +128,35 @@ export const ProductDetails = () => {
         </div>
       )}
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+      <div className="container mx-auto px-4 py-12 max-w-7xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
           {/* COLUMNA IZQUIERDA: Galería de Imágenes */}
-          <div className="flex flex-col gap-4">
-            <div className="w-full bg-white rounded-2xl border border-gray-200 overflow-hidden flex justify-center items-center p-4">
+          <div className="flex flex-col gap-6">
+            <div className="w-full bg-zinc-50/50 rounded-xl border border-zinc-100 overflow-hidden flex justify-center items-center p-8">
               <Image
                 src={selectedImage}
                 alt={MOCK_PRODUCT.modelo}
-                className="object-contain w-full h-[450px]"
-                radius="lg"
+                className="object-contain w-full h-[500px]"
+                radius="none"
                 loading="lazy"
               />
             </div>
 
-            <div className="flex gap-4 overflow-x-auto py-2">
+            <div className="flex gap-4 overflow-x-auto py-2 px-1">
               {MOCK_PRODUCT.imagenes.map((img, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(img)}
-                  className={`flex-shrink-0 border-2 rounded-xl overflow-hidden transition-all duration-200 ${
+                  className={`flex-shrink-0 border-2 rounded-xl overflow-hidden transition-all duration-300 ${
                     selectedImage === img
-                      ? "border-primary shadow-md"
-                      : "border-transparent hover:border-gray-300"
+                      ? "border-zinc-900 opacity-100"
+                      : "border-transparent opacity-60 hover:opacity-100"
                   }`}
                 >
                   <Image
                     src={img}
                     alt={`Miniatura ${index + 1}`}
-                    className="object-cover w-20 h-20 bg-white"
+                    className="object-cover w-20 h-20 bg-zinc-50"
                     radius="none"
                   />
                 </button>
@@ -163,21 +165,21 @@ export const ProductDetails = () => {
           </div>
 
           {/* COLUMNA DERECHA: Información y Acción */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 pt-4">
             <div>
-              <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest mb-3">
                 {MOCK_PRODUCT.marca}
               </p>
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
+              <h1 className="text-3xl lg:text-4xl font-extrabold text-zinc-900 leading-tight tracking-tight">
                 {MOCK_PRODUCT.modelo}
               </h1>
             </div>
 
-            <div className="flex items-end gap-3 mt-2">
-              <span className="text-4xl font-black text-primary">
+            <div className="flex items-end gap-4 mt-2">
+              <span className="text-4xl font-light text-zinc-900 tracking-tight">
                 ${MOCK_PRODUCT.precioActual.toLocaleString()}
               </span>
-              <span className="text-xl text-gray-400 line-through mb-1">
+              <span className="text-xl font-light text-zinc-400 line-through mb-1">
                 ${MOCK_PRODUCT.precioAnterior.toLocaleString()}
               </span>
             </div>
@@ -185,19 +187,21 @@ export const ProductDetails = () => {
             {/* BOTÓN DE RESEÑAS INTEGRADO */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1">
-                <Star className="fill-warning text-warning w-5 h-5" />
-                <Star className="fill-warning text-warning w-5 h-5" />
-                <Star className="fill-warning text-warning w-5 h-5" />
-                <Star className="fill-warning text-warning w-5 h-5" />
-                <Star className="fill-warning text-warning w-5 h-5 opacity-50" />
-                <span className="text-sm font-bold ml-1">4.8</span>
+                <Star className="fill-zinc-800 text-zinc-800 w-4 h-4" />
+                <Star className="fill-zinc-800 text-zinc-800 w-4 h-4" />
+                <Star className="fill-zinc-800 text-zinc-800 w-4 h-4" />
+                <Star className="fill-zinc-800 text-zinc-800 w-4 h-4" />
+                <Star className="fill-zinc-200 text-zinc-200 w-4 h-4" />
+                <span className="text-sm font-medium text-zinc-900 ml-2">
+                  4.8
+                </span>
               </div>
               <Button
                 variant="light"
-                color="primary"
+                color="default"
                 size="sm"
-                className="font-medium"
-                startContent={<MessageSquare size={16} />}
+                className="font-medium text-zinc-500 hover:text-zinc-900"
+                startContent={<MessageSquare size={16} strokeWidth={1.5} />}
                 onPress={() => setIsReviewsOpen(true)}
               >
                 Ver Reseñas (3)
@@ -206,26 +210,26 @@ export const ProductDetails = () => {
 
             <div className="flex gap-3">
               <Chip
-                color="success"
-                variant="flat"
+                color="default"
+                variant="bordered"
                 size="md"
-                className="font-medium"
-                startContent={<Zap size={16} />}
+                className="font-medium text-zinc-600 border-zinc-200 bg-white"
+                startContent={<Zap size={14} className="text-zinc-500" />}
               >
                 Entrega rápida
               </Chip>
               <Chip
-                color="secondary"
-                variant="flat"
+                color="default"
+                variant="bordered"
                 size="md"
-                className="font-medium"
-                startContent={<Package size={16} />}
+                className="font-medium text-zinc-600 border-zinc-200 bg-white"
+                startContent={<Package size={14} className="text-zinc-500" />}
               >
                 Envío GRATIS
               </Chip>
             </div>
 
-            <p className="text-gray-600 leading-relaxed">
+            <p className="text-zinc-500 font-light leading-relaxed tracking-wide">
               {MOCK_PRODUCT.descripcion}
             </p>
 
@@ -233,19 +237,24 @@ export const ProductDetails = () => {
             {renderActionButton()}
 
             {/* Garantía */}
-            <div className="flex flex-col gap-3 mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="flex flex-col gap-4 mt-6 p-5 bg-zinc-50/50 rounded-xl border border-zinc-200/60">
               <div className="flex items-center gap-3">
                 <ShieldCheck
-                  size={24}
-                  className="text-gray-600 flex-shrink-0"
+                  size={20}
+                  strokeWidth={1.5}
+                  className="text-zinc-500 flex-shrink-0"
                 />
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-zinc-600 font-light">
                   Garantía oficial de 12 meses con la marca.
                 </p>
               </div>
               <div className="flex items-center gap-3">
-                <CreditCard size={24} className="text-gray-600 flex-shrink-0" />
-                <p className="text-sm text-gray-700">
+                <CreditCard
+                  size={20}
+                  strokeWidth={1.5}
+                  className="text-zinc-500 flex-shrink-0"
+                />
+                <p className="text-sm text-zinc-600 font-light">
                   Aceptamos todas las tarjetas de crédito y billeteras
                   digitales.
                 </p>
@@ -254,25 +263,27 @@ export const ProductDetails = () => {
           </div>
         </div>
 
-        <Divider className="my-12" />
+        <Divider className="my-16 bg-zinc-100" />
 
         {/* ESPECIFICACIONES */}
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          <h2 className="text-2xl font-bold text-zinc-900 mb-8 tracking-tight">
             Especificaciones Técnicas
           </h2>
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+          <div className="bg-white rounded-xl border border-zinc-200/60 overflow-hidden shadow-sm">
             <table className="w-full text-left border-collapse">
               <tbody>
                 {MOCK_PRODUCT.especificaciones.map((spec, index) => (
                   <tr
                     key={index}
-                    className="border-b border-gray-200 last:border-0 even:bg-gray-50 hover:bg-gray-100 transition-colors"
+                    className="border-b border-zinc-100 last:border-0 even:bg-zinc-50/50 hover:bg-zinc-50 transition-colors"
                   >
-                    <th className="py-3 px-4 font-semibold text-gray-700 w-1/3 border-r border-gray-200">
+                    <th className="py-4 px-6 font-medium text-zinc-700 w-1/3 border-r border-zinc-100">
                       {spec.caracteristica}
                     </th>
-                    <td className="py-3 px-4 text-gray-600">{spec.valor}</td>
+                    <td className="py-4 px-6 text-zinc-500 font-light">
+                      {spec.valor}
+                    </td>
                   </tr>
                 ))}
               </tbody>

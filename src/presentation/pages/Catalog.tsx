@@ -66,11 +66,11 @@ export const Catalog = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-10 text-center">
-        <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-3 tracking-tight">
+      <div className="mb-14 text-center">
+        <h1 className="text-3xl lg:text-4xl font-semibold text-zinc-900 mb-4 tracking-tight">
           {query ? `Resultados para "${query}"` : "Catálogo de Equipos"}
         </h1>
-        <p className="text-gray-500 max-w-2xl mx-auto">
+        <p className="text-zinc-500 font-light max-w-2xl mx-auto tracking-wide">
           {query
             ? `Se encontraron ${filteredProducts.length} equipos coincidiendo con tu búsqueda.`
             : "Descubre nuestra selección de smartphones de gama alta con las mejores especificaciones del mercado."}
@@ -79,49 +79,56 @@ export const Catalog = () => {
 
       {/* Manejo de estado vacío (Empty State) */}
       {filteredProducts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
-          <div className="bg-gray-100 p-6 rounded-full text-gray-400 mb-6">
-            <SearchX size={48} />
+        <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
+          <div className="bg-zinc-50 p-6 rounded-full text-zinc-400 mb-6 border border-zinc-100">
+            <SearchX size={40} strokeWidth={1.5} />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-xl font-medium text-zinc-900 mb-3 tracking-tight">
             No encontramos equipos
           </h2>
-          <p className="text-gray-500 max-w-md mx-auto mb-6">
+          <p className="text-zinc-500 font-light max-w-md mx-auto mb-8">
             No hay resultados que coincidan con "{query}". Intenta buscar con
             otros términos, verifica la ortografía o navega por nuestro catálogo
             completo.
           </p>
-          <Button color="primary" variant="flat" onPress={() => navigate("/")}>
+          <Button
+            color="default"
+            variant="solid"
+            className="bg-zinc-900 text-white px-8 font-medium"
+            onPress={() => navigate("/")}
+          >
             Ver todo el catálogo
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {filteredProducts.map((product) => (
             <Card
               key={product.id}
-              className="w-full flex flex-col bg-white shadow-sm hover:shadow-lg transition-shadow border border-gray-100"
+              shadow="none"
+              radius="sm"
+              className="w-full flex flex-col bg-white transition-all duration-300 border border-zinc-200/60 hover:shadow-md hover:border-zinc-300"
             >
-              <CardHeader className="p-0 flex-col items-center bg-gray-50 overflow-hidden rounded-t-xl h-56">
+              <CardHeader className="p-6 flex-col items-center bg-white overflow-hidden rounded-t-sm h-64 border-b border-zinc-50">
                 <Image
                   alt={product.modelo}
-                  className="object-contain w-full h-full p-4 hover:scale-105 transition-transform duration-300 mix-blend-multiply"
+                  className="object-contain w-full h-full hover:scale-105 transition-transform duration-500 ease-out"
                   src={product.imagenUrl}
                   radius="none"
                   loading="lazy"
                 />
               </CardHeader>
 
-              <CardBody className="pb-2 pt-5 px-5 flex flex-col flex-1">
-                <p className="text-xs uppercase font-bold text-gray-400 tracking-wider mb-1">
+              <CardBody className="pb-4 pt-6 px-6 flex flex-col flex-1">
+                <p className="text-xs font-semibold text-zinc-400 tracking-widest mb-2 uppercase">
                   {product.marca}
                 </p>
-                <h4 className="font-bold text-lg text-gray-900 leading-tight mb-3 line-clamp-2">
+                <h4 className="font-medium text-lg text-zinc-900 leading-snug mb-4 line-clamp-2 tracking-tight">
                   {product.modelo}
                 </h4>
 
                 <div className="mt-auto">
-                  <p className="text-2xl font-black text-primary">
+                  <p className="text-2xl font-light text-zinc-900 tracking-tight">
                     $
                     {product.precio.toLocaleString("en-US", {
                       minimumFractionDigits: 2,
@@ -131,12 +138,12 @@ export const Catalog = () => {
                 </div>
               </CardBody>
 
-              <CardFooter className="px-5 pb-5 pt-3">
+              <CardFooter className="px-6 pb-6 pt-2">
                 <Button
                   onPress={() => navigate("/producto/" + product.id)}
-                  color="primary"
+                  color="default"
                   variant="bordered"
-                  className="font-bold border-2 w-full"
+                  className="font-medium w-full border-zinc-200 text-zinc-900 hover:bg-zinc-50 transition-colors"
                 >
                   Ver detalles
                 </Button>

@@ -70,18 +70,19 @@ export const ReviewsModal = ({
     (r) => r.celularId === productId || productId === "cel-001",
   );
 
-  // Renderizador de Estrellas
+  // Renderizador de Estrellas (Estilo Minimalista Premium)
   const renderStars = (rating: number, interactive = false) => {
     return (
       <div className="flex gap-1">
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
-            size={interactive ? 24 : 16}
+            size={interactive ? 24 : 14}
+            strokeWidth={interactive ? 1.5 : 2}
             className={`${
               star <= rating
-                ? "fill-warning text-warning"
-                : "fill-transparent text-gray-300"
+                ? "fill-zinc-800 text-zinc-800"
+                : "fill-zinc-100 text-zinc-200"
             } ${interactive ? "cursor-pointer hover:scale-110 transition-transform" : ""}`}
             onClick={() => interactive && setNuevaCalificacion(star)}
           />
@@ -96,25 +97,35 @@ export const ReviewsModal = ({
       onOpenChange={onClose}
       size="2xl"
       scrollBehavior="inside"
+      backdrop="blur"
+      classNames={{
+        base: "bg-white rounded-2xl shadow-sm border border-zinc-200/60",
+        header: "border-b border-zinc-100 py-6 px-8",
+        body: "py-6 px-8",
+        footer: "border-t border-zinc-100 py-4 px-8",
+      }}
     >
       <ModalContent>
-        <ModalHeader className="flex flex-col gap-1 border-b border-gray-100 pb-4">
-          <h2 className="text-2xl font-bold text-gray-900">
+        <ModalHeader className="flex flex-col gap-1.5">
+          <h2 className="text-xl font-bold text-zinc-900 tracking-tight">
             Opiniones de los Clientes
           </h2>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
+          <div className="flex items-center gap-3 text-sm text-zinc-500 font-light">
             {renderStars(4.8)}
             <span>4.8 de 5 ({productReviews.length} reseñas)</span>
           </div>
         </ModalHeader>
 
-        <ModalBody className="py-6 flex flex-col gap-8">
+        <ModalBody className="flex flex-col gap-8">
           {/* Formulario o Alerta según el rol del usuario */}
           {userRole === "INVITADO" ? (
-            <div className="bg-warning-50 border border-warning-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3 text-warning-700">
-                <AlertCircle className="w-6 h-6 flex-shrink-0" />
-                <p className="font-medium text-sm">
+            <div className="bg-zinc-50 border border-zinc-200/60 rounded-xl p-5 flex flex-col sm:flex-row items-center justify-between gap-5">
+              <div className="flex items-center gap-3 text-zinc-600">
+                <AlertCircle
+                  className="w-5 h-5 flex-shrink-0 text-zinc-400"
+                  strokeWidth={1.5}
+                />
+                <p className="font-light text-sm tracking-wide">
                   Debes iniciar sesión como cliente para dejar una opinión sobre
                   este equipo.
                 </p>
@@ -122,50 +133,58 @@ export const ReviewsModal = ({
               <Button
                 as={Link}
                 to="/login"
-                color="warning"
-                variant="flat"
+                color="default"
+                variant="bordered"
                 size="sm"
-                className="font-bold flex-shrink-0"
+                className="font-medium border-zinc-200 hover:bg-white text-zinc-700 flex-shrink-0 transition-colors"
               >
                 Iniciar Sesión
               </Button>
             </div>
           ) : userRole === "CLIENTE" ? (
-            <div className="bg-gray-50 p-5 rounded-xl border border-gray-100 flex flex-col gap-4">
-              <h3 className="font-bold text-gray-800">Escribe tu opinión</h3>
+            <div className="bg-zinc-50/50 p-6 rounded-2xl border border-zinc-100 flex flex-col gap-5">
+              <h3 className="font-semibold text-zinc-900 tracking-tight">
+                Escribe tu opinión
+              </h3>
               <div>
-                <p className="text-sm text-gray-600 mb-2">Calificación:</p>
+                <p className="text-xs text-zinc-500 font-medium uppercase tracking-widest mb-3">
+                  Calificación:
+                </p>
                 {renderStars(nuevaCalificacion, true)}
               </div>
               <textarea
                 value={nuevoComentario}
                 onChange={(e) => setNuevoComentario(e.target.value)}
                 placeholder="¿Qué te pareció este celular?..."
-                className="w-full p-3 rounded-lg border border-gray-300 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-all resize-none h-24 text-sm"
+                className="w-full p-4 rounded-xl border border-zinc-200/60 focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 outline-none transition-all resize-none h-28 text-sm text-zinc-900 placeholder:text-zinc-400 bg-white shadow-sm"
               />
-              <div className="flex justify-end">
-                <Button color="primary" className="font-bold px-8">
+              <div className="flex justify-end mt-1">
+                <Button
+                  color="default"
+                  className="font-medium bg-zinc-900 text-white shadow-none hover:bg-zinc-800 transition-colors px-8"
+                >
                   Publicar Opinión
                 </Button>
               </div>
             </div>
-          ) : null}{" "}
+          ) : null}
+
           {/* Admin y Proveedor no pueden dejar reseñas como clientes */}
           {/* Lista de Reseñas */}
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col">
             {productReviews.map((resena) => (
               <div
                 key={resena.id}
-                className="flex flex-col gap-2 pb-6 border-b border-gray-100 last:border-0"
+                className="flex flex-col gap-3 py-6 border-b border-zinc-100 last:border-0 first:pt-0"
               >
                 <div className="flex justify-between items-start">
-                  <div className="flex flex-col gap-1">
-                    <span className="font-bold text-gray-900">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="font-medium text-zinc-900 tracking-tight">
                       {resena.autorNombre}
                     </span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       {renderStars(resena.calificacion)}
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs font-light text-zinc-400">
                         {resena.fecha.toLocaleDateString("es-ES", {
                           year: "numeric",
                           month: "long",
@@ -177,15 +196,16 @@ export const ReviewsModal = ({
 
                   {/* LÓGICA DE AUTORIZACIÓN: Editar / Eliminar */}
                   {resena.autorId === currentUserId && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                       <Button
                         isIconOnly
                         size="sm"
                         variant="light"
                         color="default"
                         aria-label="Editar"
+                        className="text-zinc-400 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
                       >
-                        <Pencil size={14} className="text-gray-500" />
+                        <Pencil size={14} strokeWidth={1.5} />
                       </Button>
                       <Button
                         isIconOnly
@@ -193,13 +213,14 @@ export const ReviewsModal = ({
                         variant="light"
                         color="danger"
                         aria-label="Eliminar"
+                        className="text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={14} strokeWidth={1.5} />
                       </Button>
                     </div>
                   )}
                 </div>
-                <p className="text-gray-600 text-sm mt-1 leading-relaxed">
+                <p className="text-zinc-700 text-sm mt-2 font-light leading-relaxed tracking-wide">
                   {resena.comentario}
                 </p>
               </div>
@@ -207,12 +228,12 @@ export const ReviewsModal = ({
           </div>
         </ModalBody>
 
-        <ModalFooter className="border-t border-gray-100">
+        <ModalFooter>
           <Button
             color="default"
             variant="light"
             onPress={onClose}
-            className="font-medium"
+            className="font-medium text-zinc-500 hover:text-zinc-900 transition-colors px-6"
           >
             Cerrar
           </Button>

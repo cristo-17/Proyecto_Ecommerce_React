@@ -104,13 +104,13 @@ export const ProviderDashboard = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full">
-      <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div className="flex flex-col gap-8 w-full max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-8 rounded-2xl border border-zinc-200/60 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl lg:text-3xl font-semibold text-zinc-900 tracking-tight">
             {userRole === "ADMIN" ? "Inventario Global" : "Mi Inventario"}
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-zinc-500 font-light mt-2 tracking-wide">
             {userRole === "ADMIN"
               ? "Vista de solo lectura de todos los equipos registrados."
               : "Gestiona los equipos que ofreces en la plataforma."}
@@ -121,16 +121,16 @@ export const ProviderDashboard = () => {
         {userRole === "PROVEEDOR" && (
           <Button
             onPress={handleOpenCreate}
-            color="primary"
+            color="default"
             size="lg"
-            className="font-bold shadow-md"
+            className="font-medium bg-zinc-900 text-white hover:bg-zinc-800 shadow-none transition-colors"
           >
             + Publicar Nuevo Equipo
           </Button>
         )}
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="bg-white rounded-2xl border border-zinc-200/60 overflow-hidden">
         {/* Pasamos el rol a la tabla */}
         <ProviderInventoryTable
           products={products}

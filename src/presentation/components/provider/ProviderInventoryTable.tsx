@@ -46,39 +46,50 @@ export const ProviderInventoryTable = ({
       switch (columnKey) {
         case "imagen":
           return (
-            <Image
-              src={product.imagenUrl}
-              alt={product.modelo}
-              className="w-16 h-16 object-contain bg-white rounded-lg border border-gray-200 min-w-[64px]"
-            />
+            <div className="w-16 h-16 flex items-center justify-center bg-zinc-50 border border-zinc-100 rounded-lg p-1.5">
+              <Image
+                src={product.imagenUrl}
+                alt={product.modelo}
+                className="w-full h-full object-contain mix-blend-multiply"
+                radius="none"
+              />
+            </div>
           );
         case "marca":
           return (
-            <span className="font-semibold text-gray-600">{product.marca}</span>
+            <span className="font-medium text-zinc-500 tracking-wide text-sm">
+              {product.marca}
+            </span>
           );
         case "modelo":
           return (
-            <span className="font-bold text-gray-900">{product.modelo}</span>
+            <span className="font-medium text-zinc-900 tracking-tight">
+              {product.modelo}
+            </span>
           );
         case "proveedor":
           return (
-            <span className="font-medium text-primary">
+            <span className="font-medium text-zinc-600">
               {product.proveedor}
             </span>
           );
         case "precio":
           return (
-            <span className="font-medium text-success">
+            <span className="font-light text-zinc-900 tracking-tight">
               ${product.precio.toLocaleString()}
             </span>
           );
         case "stock":
           return (
             <Chip
-              color={product.stock > 0 ? "success" : "danger"}
+              color={product.stock > 0 ? "default" : "danger"}
               variant="flat"
               size="sm"
-              className="font-bold"
+              className={`font-medium tracking-wide ${
+                product.stock > 0
+                  ? "bg-zinc-100 text-zinc-700"
+                  : "bg-red-50 text-red-600"
+              }`}
             >
               {product.stock} unds.
             </Chip>
@@ -87,9 +98,11 @@ export const ProviderInventoryTable = ({
           if (isAdmin) {
             // Vista de solo lectura para el Administrador
             return (
-              <div className="flex items-center justify-center gap-1 text-gray-400">
-                <Lock size={14} />
-                <span className="text-xs font-semibold">Solo lectura</span>
+              <div className="flex items-center justify-center gap-1.5 text-zinc-400">
+                <Lock size={14} strokeWidth={1.5} />
+                <span className="text-xs font-light tracking-wide">
+                  Solo lectura
+                </span>
               </div>
             );
           }
@@ -98,21 +111,23 @@ export const ProviderInventoryTable = ({
             <div className="flex gap-2 justify-center">
               <Button
                 isIconOnly
-                color="primary"
-                variant="flat"
+                color="default"
+                variant="light"
                 size="sm"
+                className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
                 onPress={() => onEditClick(product)}
               >
-                <Pencil size={16} />
+                <Pencil size={16} strokeWidth={1.5} />
               </Button>
               <Button
                 isIconOnly
                 color="danger"
-                variant="flat"
+                variant="light"
                 size="sm"
+                className="text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                 onPress={() => onDeleteClick(product)}
               >
-                <Trash2 size={16} />
+                <Trash2 size={16} strokeWidth={1.5} />
               </Button>
             </div>
           );
@@ -124,7 +139,14 @@ export const ProviderInventoryTable = ({
   );
 
   return (
-    <Table aria-label="Tabla de inventario" removeWrapper>
+    <Table
+      aria-label="Tabla de inventario"
+      removeWrapper
+      classNames={{
+        th: "bg-zinc-50/50 text-zinc-500 font-semibold tracking-wider text-xs px-6 py-4 border-b border-zinc-100 uppercase",
+        td: "px-6 py-4 border-b border-zinc-50/80 last:border-0",
+      }}
+    >
       <TableHeader columns={columns}>
         {(columna: any) => (
           <TableColumn key={columna.key} align={columna.align || "start"}>
@@ -139,7 +161,7 @@ export const ProviderInventoryTable = ({
         {(item) => (
           <TableRow
             key={item.id}
-            className="hover:bg-gray-50 transition-colors"
+            className="hover:bg-zinc-50/50 transition-colors"
           >
             {(columnKey) => (
               <TableCell>{renderCell(item, columnKey)}</TableCell>

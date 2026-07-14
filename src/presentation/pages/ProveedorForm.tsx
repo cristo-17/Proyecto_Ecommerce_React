@@ -21,7 +21,7 @@ import {
   ModalFooter,
 } from "@heroui/modal";
 import { Select, SelectItem } from "@heroui/select";
-import { AlertTriangle, Trash2 } from "lucide-react";
+import { AlertTriangle, Trash2, Pencil } from "lucide-react";
 
 // Mock Data alineado con la interfaz de dominio (emailContacto)
 const INITIAL_PROVIDERS = [
@@ -100,53 +100,82 @@ export const ProveedorForm = () => {
     alert("Proveedor editado exitosamente.");
   };
 
+  // Clases compartidas para inputs minimalistas
+  const inputMinimalistClasses = {
+    inputWrapper:
+      "border-zinc-200 bg-white shadow-none hover:border-zinc-300 focus-within:!border-zinc-900 transition-colors",
+    label: "text-zinc-500 font-medium text-xs",
+    input: "text-zinc-900 placeholder:text-zinc-400",
+  };
+
   // ----------------------------------------------------
   // VISTA 1: MODO PROVEEDOR (Mi Perfil de Empresa)
   // ----------------------------------------------------
   if (userRole === "PROVEEDOR") {
     return (
-      <div className="flex justify-center items-start w-full mt-4">
-        <Card className="w-full max-w-2xl bg-white shadow-sm border border-gray-100">
-          <CardHeader className="px-6 pt-6 pb-2 border-b border-gray-100">
-            <h2 className="text-2xl font-bold text-gray-800">
-              Mis Datos de Empresa
-            </h2>
+      <div className="flex justify-center items-start w-full max-w-4xl mx-auto">
+        <Card
+          shadow="none"
+          className="w-full bg-white border border-zinc-200/60 rounded-2xl mt-4"
+        >
+          <CardHeader className="px-8 pt-8 pb-4 border-b border-zinc-100">
+            <div>
+              <h2 className="text-2xl font-semibold text-zinc-900 tracking-tight">
+                Mis Datos de Empresa
+              </h2>
+              <p className="text-sm font-light text-zinc-500 mt-1">
+                Actualiza la información visible de tu compañía.
+              </p>
+            </div>
           </CardHeader>
-          <CardBody className="p-6">
+          <CardBody className="p-8">
             <form
               onSubmit={handleSubmit(onSubmitProvider)}
-              className="flex flex-col gap-4"
+              className="flex flex-col gap-6"
             >
-              <Input
-                {...register("razonSocial")}
-                label="Razón Social"
-                variant="bordered"
-              />
-              <Input
-                {...register("ruc")}
-                label="RUC"
-                variant="bordered"
-                isDisabled
-                description="El RUC no puede ser modificado"
-              />
-              <Input
-                {...register("telefono")}
-                label="Teléfono de Contacto"
-                variant="bordered"
-              />
-              <Input
-                {...register("direccion")}
-                label="Dirección Fiscal"
-                variant="bordered"
-              />
-              <Button
-                type="submit"
-                color="primary"
-                size="lg"
-                className="mt-4 font-bold"
-              >
-                Guardar Cambios
-              </Button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Input
+                  {...register("razonSocial")}
+                  label="Razón Social"
+                  variant="bordered"
+                  classNames={inputMinimalistClasses}
+                />
+                <Input
+                  {...register("ruc")}
+                  label="RUC"
+                  variant="bordered"
+                  isDisabled
+                  description={
+                    <span className="text-zinc-400 text-xs">
+                      El RUC no puede ser modificado
+                    </span>
+                  }
+                  classNames={inputMinimalistClasses}
+                />
+                <Input
+                  {...register("telefono")}
+                  label="Teléfono de Contacto"
+                  variant="bordered"
+                  classNames={inputMinimalistClasses}
+                />
+                <Input
+                  {...register("direccion")}
+                  label="Dirección Fiscal"
+                  variant="bordered"
+                  classNames={inputMinimalistClasses}
+                />
+              </div>
+
+              <div className="flex justify-end mt-4">
+                <Button
+                  type="submit"
+                  color="default"
+                  size="lg"
+                  className="font-medium bg-zinc-900 text-white hover:bg-zinc-800 shadow-none px-8 transition-colors"
+                >
+                  Guardar Cambios
+                </Button>
+              </div>
             </form>
           </CardBody>
         </Card>
@@ -158,29 +187,39 @@ export const ProveedorForm = () => {
   // VISTA 2: MODO ADMIN (Gestión de Proveedores)
   // ----------------------------------------------------
   return (
-    <div className="flex flex-col gap-6 w-full">
-      <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-8 rounded-2xl border border-zinc-200/60 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl lg:text-3xl font-semibold text-zinc-900 tracking-tight">
             Gestión de Proveedores
           </h1>
-          <p className="text-gray-500 mt-1">
-            Administra las empresas asociadas a la plataforma.
+          <p className="text-zinc-500 font-light mt-2 tracking-wide">
+            Administra las empresas asociadas a la plataforma y sus estados.
           </p>
         </div>
         <Button
-          color="primary"
+          color="default"
           size="lg"
-          className="font-bold shadow-md"
+          className="font-medium bg-zinc-900 text-white hover:bg-zinc-800 shadow-none transition-colors"
           onPress={() => setIsRegisterOpen(true)}
         >
           + Registrar Proveedor
         </Button>
       </div>
 
-      <Card className="shadow-sm border border-gray-100">
+      <Card
+        shadow="none"
+        className="bg-white border border-zinc-200/60 rounded-2xl overflow-hidden"
+      >
         <CardBody className="p-0">
-          <Table aria-label="Gestión de proveedores" removeWrapper>
+          <Table
+            aria-label="Gestión de proveedores"
+            removeWrapper
+            classNames={{
+              th: "bg-zinc-50/50 text-zinc-500 font-semibold tracking-wider text-xs px-6 py-4 border-b border-zinc-100 uppercase",
+              td: "px-6 py-4 border-b border-zinc-50/80 last:border-0",
+            }}
+          >
             <TableHeader>
               <TableColumn>RAZÓN SOCIAL</TableColumn>
               <TableColumn>RUC</TableColumn>
@@ -190,19 +229,29 @@ export const ProveedorForm = () => {
             </TableHeader>
             <TableBody items={providers}>
               {(item) => (
-                <TableRow key={item.id} className="hover:bg-gray-50">
-                  <TableCell className="font-bold text-gray-800">
+                <TableRow
+                  key={item.id}
+                  className="hover:bg-zinc-50/50 transition-colors"
+                >
+                  <TableCell className="font-medium text-zinc-900 tracking-tight">
                     {item.razonSocial}
                   </TableCell>
-                  <TableCell className="text-gray-600">{item.ruc}</TableCell>
-                  <TableCell className="text-gray-600">
+                  <TableCell className="text-zinc-500 font-light tracking-wide">
+                    {item.ruc}
+                  </TableCell>
+                  <TableCell className="text-zinc-500 font-light">
                     {item.emailContacto}
                   </TableCell>
                   <TableCell>
                     <Chip
-                      color={item.estado === "ACTIVO" ? "success" : "danger"}
+                      color={item.estado === "ACTIVO" ? "default" : "danger"}
                       variant="flat"
                       size="sm"
+                      className={`font-medium tracking-wide ${
+                        item.estado === "ACTIVO"
+                          ? "bg-zinc-100 text-zinc-700"
+                          : "bg-red-50 text-red-600"
+                      }`}
                     >
                       {item.estado}
                     </Chip>
@@ -210,21 +259,24 @@ export const ProveedorForm = () => {
                   <TableCell>
                     <div className="flex justify-center gap-2">
                       <Button
+                        isIconOnly
                         size="sm"
                         color="default"
-                        variant="flat"
+                        variant="light"
+                        className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
                         onPress={() => handleOpenEdit(item)}
                       >
-                        Editar
+                        <Pencil size={16} strokeWidth={1.5} />
                       </Button>
                       <Button
+                        isIconOnly
                         size="sm"
                         color="danger"
-                        variant="flat"
-                        isIconOnly
+                        variant="light"
+                        className="text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                         onPress={() => handleOpenDelete(item)}
                       >
-                        <Trash2 size={16} />
+                        <Trash2 size={16} strokeWidth={1.5} />
                       </Button>
                     </div>
                   </TableCell>
@@ -240,26 +292,41 @@ export const ProveedorForm = () => {
         isOpen={isDeleteModalOpen}
         onOpenChange={() => setIsDeleteModalOpen(false)}
         size="md"
+        backdrop="blur"
+        classNames={{
+          base: "bg-white rounded-2xl shadow-sm border border-zinc-200/60",
+          header: "border-b border-zinc-100 py-4 px-6",
+          body: "py-6 px-6",
+          footer: "border-t border-zinc-100 py-4 px-6",
+        }}
       >
         <ModalContent>
-          <ModalHeader className="text-danger font-bold flex items-center gap-2">
-            <AlertTriangle size={20} /> Advertencia Crítica
+          <ModalHeader className="flex gap-3 items-center text-zinc-900 font-semibold text-lg tracking-tight">
+            <div className="p-2 bg-red-50 rounded-full text-red-600">
+              <AlertTriangle size={18} strokeWidth={2} />
+            </div>
+            Advertencia Crítica
           </ModalHeader>
           <ModalBody>
-            <p className="text-gray-700 leading-relaxed">
+            <p className="text-zinc-600 font-light text-sm leading-relaxed">
               Estás a punto de eliminar al proveedor{" "}
-              <strong>{providerToDelete?.razonSocial}</strong>.
+              <strong className="font-semibold text-zinc-900">
+                {providerToDelete?.razonSocial}
+              </strong>
+              .
             </p>
-            <div className="bg-danger-50 text-danger-700 p-3 rounded-lg text-sm mt-2 border border-danger-200">
-              <strong>Borrado en Cascada:</strong> Esta acción eliminará
-              permanentemente todos los celulares, inventario y reseñas
-              asociados a este proveedor del catálogo público.
+            <div className="bg-red-50/50 border border-red-200 text-red-700 p-4 rounded-xl text-sm mt-2 leading-relaxed">
+              <strong className="font-semibold">Borrado en Cascada:</strong>{" "}
+              Esta acción eliminará permanentemente todos los celulares,
+              inventario y reseñas asociados a este proveedor del catálogo
+              público.
             </div>
           </ModalBody>
           <ModalFooter>
             <Button
               color="default"
               variant="light"
+              className="font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
               onPress={() => setIsDeleteModalOpen(false)}
             >
               Cancelar
@@ -267,7 +334,7 @@ export const ProveedorForm = () => {
             <Button
               color="danger"
               onPress={handleConfirmDelete}
-              className="font-bold shadow-md shadow-danger/20"
+              className="font-medium bg-red-600 text-white hover:bg-red-700 shadow-none px-6 transition-colors"
             >
               Eliminar Definitivamente
             </Button>
@@ -279,25 +346,34 @@ export const ProveedorForm = () => {
       <Modal
         isOpen={isRegisterOpen}
         onOpenChange={() => setIsRegisterOpen(false)}
-        size="md"
+        size="lg"
+        backdrop="blur"
+        classNames={{
+          base: "bg-white rounded-2xl shadow-sm border border-zinc-200/60",
+          header: "border-b border-zinc-100 py-5 px-8",
+          body: "py-6 px-8",
+          footer: "border-t border-zinc-100 py-5 px-8",
+        }}
       >
         <ModalContent>
           <form onSubmit={handleRegisterSubmit}>
-            <ModalHeader className="font-bold text-xl">
+            <ModalHeader className="font-bold text-xl text-zinc-900 tracking-tight">
               Registrar Nuevo Proveedor
             </ModalHeader>
-            <ModalBody className="flex flex-col gap-4">
+            <ModalBody className="flex flex-col gap-5">
               <Input
                 label="Razón Social"
                 placeholder="Ej. TechCorp SAC"
                 variant="bordered"
                 isRequired
+                classNames={inputMinimalistClasses}
               />
               <Input
                 label="RUC"
                 placeholder="Ej. 20123456789"
                 variant="bordered"
                 isRequired
+                classNames={inputMinimalistClasses}
               />
               <Input
                 label="Correo de Contacto"
@@ -305,32 +381,38 @@ export const ProveedorForm = () => {
                 placeholder="contacto@techcorp.com"
                 variant="bordered"
                 isRequired
+                classNames={inputMinimalistClasses}
               />
-              <Input
-                label="Teléfono de Contacto"
-                placeholder="Ej. 999 888 777"
-                variant="bordered"
-                isRequired
-              />
-              <Input
-                label="Dirección Fiscal"
-                placeholder="Ej. Av. Principal 123"
-                variant="bordered"
-                isRequired
-              />
+              <div className="grid grid-cols-2 gap-5">
+                <Input
+                  label="Teléfono"
+                  placeholder="Ej. 999 888 777"
+                  variant="bordered"
+                  isRequired
+                  classNames={inputMinimalistClasses}
+                />
+                <Input
+                  label="Dirección Fiscal"
+                  placeholder="Ej. Av. Principal 123"
+                  variant="bordered"
+                  isRequired
+                  classNames={inputMinimalistClasses}
+                />
+              </div>
             </ModalBody>
             <ModalFooter>
               <Button
                 color="default"
                 variant="light"
+                className="font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
                 onPress={() => setIsRegisterOpen(false)}
               >
                 Cancelar
               </Button>
               <Button
-                color="primary"
+                color="default"
                 type="submit"
-                className="font-bold shadow-md"
+                className="font-medium bg-zinc-900 text-white shadow-none hover:bg-zinc-800 transition-colors px-6"
               >
                 Guardar Proveedor
               </Button>
@@ -339,30 +421,43 @@ export const ProveedorForm = () => {
         </ModalContent>
       </Modal>
 
-      {/* MODAL: EDITAR PROVEEDOR (ADMIN) - TIPADO DE SELECT CORREGIDO */}
+      {/* MODAL: EDITAR PROVEEDOR (ADMIN) */}
       <Modal
         isOpen={isEditModalOpen}
         onOpenChange={() => setIsEditModalOpen(false)}
-        size="md"
+        size="lg"
+        backdrop="blur"
+        classNames={{
+          base: "bg-white rounded-2xl shadow-sm border border-zinc-200/60",
+          header: "border-b border-zinc-100 py-5 px-8",
+          body: "py-6 px-8",
+          footer: "border-t border-zinc-100 py-5 px-8",
+        }}
       >
         <ModalContent>
           <form onSubmit={handleEditSubmit}>
-            <ModalHeader className="font-bold text-xl">
+            <ModalHeader className="font-bold text-xl text-zinc-900 tracking-tight">
               Editar Proveedor
             </ModalHeader>
-            <ModalBody className="flex flex-col gap-4">
+            <ModalBody className="flex flex-col gap-5">
               <Input
                 label="Razón Social"
                 defaultValue={providerToEdit?.razonSocial}
                 variant="bordered"
                 isRequired
+                classNames={inputMinimalistClasses}
               />
               <Input
                 label="RUC"
                 defaultValue={providerToEdit?.ruc}
                 variant="bordered"
                 isDisabled
-                description="El RUC no puede ser modificado"
+                description={
+                  <span className="text-zinc-400 text-xs">
+                    El RUC no puede ser modificado
+                  </span>
+                }
+                classNames={inputMinimalistClasses}
               />
               <Input
                 label="Correo de Contacto"
@@ -370,44 +465,61 @@ export const ProveedorForm = () => {
                 type="email"
                 variant="bordered"
                 isRequired
+                classNames={inputMinimalistClasses}
               />
-              <Input
-                label="Teléfono de Contacto"
-                defaultValue={providerToEdit?.telefono || ""}
-                variant="bordered"
-                isRequired
-              />
-              <Input
-                label="Dirección Fiscal"
-                defaultValue={providerToEdit?.direccion || ""}
-                variant="bordered"
-                isRequired
-              />
+              <div className="grid grid-cols-2 gap-5">
+                <Input
+                  label="Teléfono"
+                  defaultValue={providerToEdit?.telefono || ""}
+                  variant="bordered"
+                  isRequired
+                  classNames={inputMinimalistClasses}
+                />
+                <Input
+                  label="Dirección"
+                  defaultValue={providerToEdit?.direccion || ""}
+                  variant="bordered"
+                  isRequired
+                  classNames={inputMinimalistClasses}
+                />
+              </div>
 
-              <Select
-                label="Estado de la Cuenta"
-                variant="bordered"
-                defaultSelectedKeys={
-                  providerToEdit ? [providerToEdit.estado] : []
-                }
-                isRequired
-              >
-                <SelectItem key="ACTIVO">Activo</SelectItem>
-                <SelectItem key="INACTIVO">Inactivo</SelectItem>
-              </Select>
+              <div className="pt-2 border-t border-zinc-100 mt-2">
+                <Select
+                  label="Estado de la Cuenta"
+                  variant="bordered"
+                  defaultSelectedKeys={
+                    providerToEdit ? [providerToEdit.estado] : []
+                  }
+                  isRequired
+                  classNames={{
+                    trigger:
+                      "border-zinc-200 bg-white shadow-none hover:border-zinc-300 focus-within:!border-zinc-900 transition-colors",
+                    label: "text-zinc-500 font-medium text-xs",
+                    value: "text-zinc-900",
+                  }}
+                >
+                  <SelectItem key="ACTIVO">Activo</SelectItem>
+                  <SelectItem key="INACTIVO">Inactivo</SelectItem>
+                </Select>
+                <p className="text-xs text-zinc-400 font-light mt-2 ml-1">
+                  Cambiar a inactivo ocultará los productos del catálogo.
+                </p>
+              </div>
             </ModalBody>
             <ModalFooter>
               <Button
                 color="default"
                 variant="light"
+                className="font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
                 onPress={() => setIsEditModalOpen(false)}
               >
                 Cancelar
               </Button>
               <Button
-                color="primary"
+                color="default"
                 type="submit"
-                className="font-bold shadow-md"
+                className="font-medium bg-zinc-900 text-white shadow-none hover:bg-zinc-800 transition-colors px-6"
               >
                 Guardar Cambios
               </Button>
