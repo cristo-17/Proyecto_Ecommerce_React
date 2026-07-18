@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
+import { useAuthStore } from "../../application/store/useAuthStore";
 
 // 1. Mock Data (Alineado con el diccionario de roles: ADMIN, PROVEEDOR, CLIENTE)
 const MOCK_USERS = [
@@ -47,6 +48,9 @@ export const Login = () => {
   const navigate = useNavigate();
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // 1. Consumo del Store de Zustand
+  const { login } = useAuthStore();
+
   const {
     register,
     handleSubmit,
@@ -63,32 +67,38 @@ export const Login = () => {
       // Delay simulado para efecto de carga
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      // Búsqueda en datos locales
-      const userFound = MOCK_USERS.find(
-        (u) => u.email === data.email && u.password === data.password,
-      );
+      // 2. Lógica de Roles Inteligente para simulación
+      const emailLower = data.email.toLowerCase();
+      let assignedRole: "ADMIN" | "PROVEEDOR" | "CLIENTE" = "CLIENTE";
 
-      if (userFound) {
-        // Guardamos en localStorage
-        localStorage.setItem("auth_token", `simulated_token_${userFound.id}`);
-        localStorage.setItem("user_role", userFound.rol);
-        localStorage.setItem("user_name", userFound.nombre);
+      if (emailLower.includes("admin")) {
+        assignedRole = "ADMIN";
+      } else if (emailLower.includes("proveedor")) {
+        assignedRole = "PROVEEDOR";
+      }
 
-        // Redirección estricta y limpia
-        switch (userFound.rol) {
-          case "ADMIN":
-          case "PROVEEDOR":
-            navigate("/dashboard"); // Redirige a la zona privada de gestión
-            break;
-          case "CLIENTE":
-          default:
-            navigate("/"); // Redirige a la tienda para seguir comprando
-            break;
-        }
-      } else {
-        setAuthError(
-          "Credenciales incorrectas. Verifica tu correo o contraseña.",
-        );
+      const mockUser = {
+        id: `usr-${Date.now()}`,
+        email: data.email,
+        nombre: `Usuario ${assignedRole}`,
+        rol: assignedRole,
+      };
+
+      // Inyectamos los datos al estado global de Zustand
+      login(mockUser, "fake-jwt-token-12345");
+
+      // 3. Redirección Basada en Rol
+      switch (assignedRole) {
+        case "ADMIN":
+          navigate("/dashboard");
+          break;
+        case "PROVEEDOR":
+          navigate("/dashboard/inventario");
+          break;
+        case "CLIENTE":
+        default:
+          navigate("/");
+          break;
       }
     } catch {
       setAuthError("Ocurrió un error inesperado. Inténtalo nuevamente.");
@@ -96,19 +106,19 @@ export const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-4 font-sans">
-      <div className="bg-white p-8 sm:p-10 rounded-2xl shadow-sm w-full max-w-md border border-zinc-200/60">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 font-sans relative">
+      <div className="bg-content1 p-8 sm:p-10 rounded-2xl shadow-sm w-full max-w-md border border-divider">
         <div className="text-center mb-10">
-          <h1 className="text-3xl font-semibold text-zinc-900 mb-3 tracking-tight">
+          <h1 className="text-3xl font-semibold text-foreground mb-3 tracking-tight">
             AppCelulares
           </h1>
-          <p className="text-zinc-500 text-sm font-light tracking-wide">
+          <p className="text-default-500 text-sm font-light tracking-wide">
             Ingresa a tu cuenta para continuar
           </p>
         </div>
 
         {authError && (
-          <div className="mb-8 p-4 bg-red-50 text-red-600 rounded-xl text-sm font-medium text-center border border-red-100">
+          <div className="mb-8 p-4 bg-danger/10 text-danger rounded-xl text-sm font-medium text-center border border-danger-200">
             {authError}
           </div>
         )}
@@ -125,10 +135,10 @@ export const Login = () => {
             fullWidth
             classNames={{
               inputWrapper:
-                "border-zinc-200 bg-white shadow-none hover:border-zinc-300 focus-within:!border-zinc-900 transition-colors",
-              label: "text-zinc-500 font-medium text-xs",
-              input: "text-zinc-900 placeholder:text-zinc-400",
-              errorMessage: "text-red-500 text-xs font-medium mt-1",
+                "border-divider bg-content1 shadow-none hover:border-default-400 focus-within:!border-foreground transition-colors",
+              label: "text-default-500 font-medium text-xs",
+              input: "text-foreground placeholder:text-default-400",
+              errorMessage: "text-danger text-xs font-medium mt-1",
             }}
           />
 
@@ -143,10 +153,10 @@ export const Login = () => {
             fullWidth
             classNames={{
               inputWrapper:
-                "border-zinc-200 bg-white shadow-none hover:border-zinc-300 focus-within:!border-zinc-900 transition-colors",
-              label: "text-zinc-500 font-medium text-xs",
-              input: "text-zinc-900 placeholder:text-zinc-400",
-              errorMessage: "text-red-500 text-xs font-medium mt-1",
+                "border-divider bg-content1 shadow-none hover:border-default-400 focus-within:!border-foreground transition-colors",
+              label: "text-default-500 font-medium text-xs",
+              input: "text-foreground placeholder:text-default-400",
+              errorMessage: "text-danger text-xs font-medium mt-1",
             }}
           />
 
@@ -157,7 +167,7 @@ export const Login = () => {
             fullWidth
             size="lg"
             isLoading={isSubmitting}
-            className="w-full h-12 font-medium bg-zinc-900 text-white hover:bg-zinc-800 shadow-none mt-4 transition-colors"
+            className="w-full h-12 font-medium bg-foreground text-background hover:opacity-80 shadow-none mt-4 transition-colors"
           >
             {isSubmitting ? "Verificando..." : "Iniciar Sesión"}
           </Button>
@@ -166,11 +176,11 @@ export const Login = () => {
         <div className="mt-8 text-center flex flex-col gap-4">
           <a
             href="#"
-            className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors font-medium"
+            className="text-sm text-default-500 hover:text-foreground transition-colors font-medium"
           >
             ¿Olvidaste tu contraseña?
           </a>
-          <p className="text-xs text-zinc-400 font-light leading-relaxed border-t border-zinc-100 pt-6">
+          <p className="text-xs text-default-400 font-light leading-relaxed border-t border-divider pt-6">
             Credenciales de prueba: admin@test.com / proveedor@test.com
             <br />
             Pass: password123

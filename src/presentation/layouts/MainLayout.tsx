@@ -1,70 +1,80 @@
 // src/presentation/layouts/MainLayout.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
 import { Navbar, NavbarBrand, NavbarContent, NavbarItem } from "@heroui/navbar";
 import { Button } from "@heroui/button";
-import { Input } from "@heroui/input";
 import { Badge } from "@heroui/badge";
-import { ShoppingCart, Package, Settings, Search } from "lucide-react";
+import { ShoppingCart, Package, Settings, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 
 // Importación del nuevo Footer
 import { Footer } from "../components/Footer";
+import { useCartStore } from "../../application/store/useCartStore";
+import { useAuthStore } from "../../application/store/useAuthStore";
 
 export const MainLayout = () => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState("");
 
-  // Lectura del rol y datos simulados de sesión
-  const userRole = localStorage.getItem("user_role") || "INVITADO";
-  const userName = "Usuario";
-  let cartCount = 3;
+  // 1. Consumo del Store de Autenticación
+  const { isAuthenticated, user, logout } = useAuthStore();
+
+  // Extrae los items y calcula el total de unidades dinámicamente
+  const { items } = useCartStore();
+  const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
+
+  // --- Consumo de next-themes para Modo Oscuro/Claro ---
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevenir errores de hidratación asegurando que el componente se montó en el cliente
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("auth_token");
-    localStorage.removeItem("user_role");
+    // 3. Ejecutar función logout de Zustand y redirigir
+    logout();
     navigate("/login");
   };
 
-  // Manejador del buscador funcional
-  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && searchQuery.trim() !== "") {
-      navigate(`/?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
-
   const renderNavActions = () => {
-    switch (userRole) {
-      case "INVITADO":
-        return (
-          <div className="flex items-center gap-2">
-            <NavbarItem>
-              <Button
-                as={Link}
-                to="/login"
-                color="default"
-                variant="light"
-                className="font-medium text-zinc-600 hover:text-zinc-900"
-              >
-                Iniciar Sesión
-              </Button>
-            </NavbarItem>
-            <NavbarItem>
-              <Button
-                color="default"
-                variant="solid"
-                className="font-medium bg-zinc-900 text-white"
-              >
-                Regístrate
-              </Button>
-            </NavbarItem>
-          </div>
-        );
+    // 2. Renderizado Condicional basado en isAuthenticated
+    if (!isAuthenticated) {
+      return (
+        <div className="flex items-center gap-2">
+          <NavbarItem>
+            <Button
+              as={Link}
+              to="/login"
+              color="default"
+              variant="light"
+              className="font-medium text-default-500 hover:text-foreground"
+            >
+              Iniciar Sesión
+            </Button>
+          </NavbarItem>
+          <NavbarItem>
+            <Button
+              color="default"
+              variant="solid"
+              className="font-medium bg-foreground text-background"
+            >
+              Regístrate
+            </Button>
+          </NavbarItem>
+        </div>
+      );
+    }
 
+    // Si el usuario está autenticado, mostramos las acciones según su rol
+    const userName = user?.nombre || "Usuario";
+
+    switch (user?.rol) {
       case "CLIENTE":
         return (
           <div className="flex items-center gap-4">
             <NavbarItem className="hidden sm:flex">
-              <span className="text-sm font-medium text-zinc-500">
+              <span className="text-sm font-medium text-default-500">
                 Hola, {userName}
               </span>
             </NavbarItem>
@@ -74,24 +84,24 @@ export const MainLayout = () => {
                 to="/perfil"
                 color="default"
                 variant="light"
-                className="font-medium text-zinc-600 hover:text-zinc-900"
+                className="font-medium text-default-500 hover:text-foreground"
               >
                 Mi Perfil
               </Button>
             </NavbarItem>
             <NavbarItem>
               <Badge
-                content={cartCount}
+                content={totalItems}
                 color="danger"
                 shape="circle"
-                isInvisible={cartCount === 0}
+                isInvisible={totalItems === 0}
               >
                 <Button
                   as={Link}
-                  to="/cart"
+                  to="/carrito"
                   color="default"
                   variant="bordered"
-                  className="font-medium border-zinc-200/60 text-zinc-900 hover:bg-zinc-50"
+                  className="font-medium border-divider text-foreground hover:bg-default-100"
                   startContent={<ShoppingCart size={18} strokeWidth={1.5} />}
                 >
                   Carrito
@@ -103,7 +113,7 @@ export const MainLayout = () => {
                 onPress={handleLogout}
                 color="danger"
                 variant="light"
-                className="font-medium text-zinc-500 hover:text-danger"
+                className="font-medium text-default-500 hover:text-danger"
               >
                 Cerrar Sesión
               </Button>
@@ -115,7 +125,7 @@ export const MainLayout = () => {
         return (
           <div className="flex items-center gap-4">
             <NavbarItem className="hidden sm:flex">
-              <span className="text-sm font-medium text-zinc-500">
+              <span className="text-sm font-medium text-default-500">
                 Hola, {userName}
               </span>
             </NavbarItem>
@@ -125,7 +135,7 @@ export const MainLayout = () => {
                 to="/dashboard"
                 color="default"
                 variant="bordered"
-                className="font-medium border-zinc-200/60 text-zinc-900 hover:bg-zinc-50"
+                className="font-medium border-divider text-foreground hover:bg-default-100"
                 startContent={<Package size={18} strokeWidth={1.5} />}
               >
                 Mi Inventario
@@ -136,7 +146,7 @@ export const MainLayout = () => {
                 onPress={handleLogout}
                 color="danger"
                 variant="light"
-                className="font-medium text-zinc-500 hover:text-danger"
+                className="font-medium text-default-500 hover:text-danger"
               >
                 Cerrar Sesión
               </Button>
@@ -153,7 +163,7 @@ export const MainLayout = () => {
                 to="/dashboard"
                 color="default"
                 variant="solid"
-                className="bg-zinc-900 text-white font-medium hover:bg-zinc-800 transition-colors"
+                className="font-medium transition-colors bg-foreground text-background"
                 startContent={<Settings size={18} strokeWidth={1.5} />}
               >
                 Panel Admin
@@ -164,7 +174,7 @@ export const MainLayout = () => {
                 onPress={handleLogout}
                 color="danger"
                 variant="light"
-                className="font-medium text-zinc-500 hover:text-danger"
+                className="font-medium text-default-500 hover:text-danger"
               >
                 Cerrar Sesión
               </Button>
@@ -178,48 +188,47 @@ export const MainLayout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col font-sans">
+    // 1. Corrección del Contenedor Raíz (Modo Oscuro)
+    <div className="min-h-screen flex flex-col font-sans bg-background text-foreground">
       <Navbar
         maxWidth="xl"
-        className="py-2 border-b border-zinc-100 bg-white/80 backdrop-blur-md"
+        className="py-2 border-b border-divider bg-background/80 backdrop-blur-md"
       >
         <NavbarBrand>
           <Link
             to="/"
-            className="font-bold text-inherit text-xl text-zinc-900 tracking-tight hover:opacity-70 transition-opacity"
+            className="font-bold text-inherit text-xl text-foreground tracking-tight hover:opacity-70 transition-opacity"
           >
             AppCelulares
           </Link>
         </NavbarBrand>
 
-        <NavbarContent className="hidden md:flex gap-4 w-full" justify="center">
-          <NavbarItem className="w-full max-w-lg">
-            <Input
-              variant="underlined"
-              classNames={{
-                base: "w-full",
-                input: "text-sm text-zinc-900 placeholder:text-zinc-400",
-                inputWrapper:
-                  "font-normal shadow-none border-zinc-200 hover:border-zinc-300 focus-within:border-zinc-900",
-              }}
-              placeholder="Buscar marcas, modelos... (Presiona Enter)"
-              size="sm"
-              value={searchQuery}
-              onValueChange={setSearchQuery}
-              onKeyDown={handleSearch}
-              startContent={
-                <Search
-                  size={16}
-                  strokeWidth={1.5}
-                  className="text-zinc-400 pointer-events-none flex-shrink-0 mb-1"
-                />
-              }
-              type="search"
-            />
+        {/* 2. Limpieza de Interfaz (Buscador removido) */}
+
+        <NavbarContent justify="end">
+          {renderNavActions()}
+
+          {/* Botón Theme Switcher inyectado armoniosamente al final */}
+          <NavbarItem className="ml-2">
+            {!mounted ? (
+              <div className="w-10 h-10" /> // Espaciador para evitar saltos de layout (CLS)
+            ) : (
+              <Button
+                isIconOnly
+                variant="light"
+                aria-label="Alternar tema"
+                className="text-default-500 hover:text-foreground transition-colors"
+                onPress={() => setTheme(theme === "dark" ? "light" : "dark")}
+              >
+                {theme === "dark" ? (
+                  <Sun size={20} strokeWidth={1.5} />
+                ) : (
+                  <Moon size={20} strokeWidth={1.5} />
+                )}
+              </Button>
+            )}
           </NavbarItem>
         </NavbarContent>
-
-        <NavbarContent justify="end">{renderNavActions()}</NavbarContent>
       </Navbar>
 
       <main className="container mx-auto max-w-7xl px-4 sm:px-6 flex-grow py-12">

@@ -27,24 +27,24 @@ export const ProviderDeleteModal = ({
       size="sm"
       backdrop="blur"
       classNames={{
-        base: "bg-white rounded-2xl shadow-sm border border-zinc-200/60",
-        header: "border-b border-zinc-100 py-4 px-6",
+        base: "bg-content1 rounded-2xl shadow-sm border border-divider",
+        header: "border-b border-divider py-4 px-6",
         body: "py-6 px-6",
-        footer: "border-t border-zinc-100 py-4 px-6",
+        footer: "border-t border-divider py-4 px-6",
       }}
     >
       <ModalContent>
-        <ModalHeader className="flex gap-3 items-center text-zinc-900 font-semibold text-lg tracking-tight">
-          <div className="p-2 bg-red-50 rounded-full text-red-600">
+        <ModalHeader className="flex gap-3 items-center text-foreground font-semibold text-lg tracking-tight">
+          <div className="p-2 bg-danger/20 rounded-full text-danger">
             <AlertTriangle size={18} strokeWidth={2} />
           </div>
           Confirmar Eliminación
         </ModalHeader>
         <ModalBody>
-          <p className="text-zinc-500 font-light text-sm leading-relaxed tracking-wide">
+          <p className="text-default-500 font-light text-sm leading-relaxed tracking-wide">
             ¿Estás seguro de que deseas eliminar este celular? Esta acción
             también borrará todas sus reseñas y{" "}
-            <strong className="font-semibold text-zinc-700">
+            <strong className="font-semibold text-foreground">
               no se puede deshacer
             </strong>
             .
@@ -55,14 +55,14 @@ export const ProviderDeleteModal = ({
             color="default"
             variant="light"
             onPress={onClose}
-            className="font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
+            className="font-medium text-default-500 hover:text-foreground transition-colors"
           >
             Cancelar
           </Button>
           <Button
             color="danger"
             onPress={onConfirm}
-            className="font-medium bg-red-600 text-white hover:bg-red-700 shadow-none px-6 transition-colors"
+            className="font-medium bg-danger text-white hover:bg-danger/80 shadow-none px-6 transition-colors"
           >
             Sí, Eliminar
           </Button>

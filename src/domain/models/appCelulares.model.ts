@@ -157,6 +157,6 @@ export interface Proveedor {
   ruc: string;
   emailContacto: string;
   telefono: string;
-  direccion?: string; // Para alinear con la UI
+  direccion?: string;
   estado: EstadoProveedor;
 }

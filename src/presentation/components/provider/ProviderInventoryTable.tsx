@@ -46,7 +46,7 @@ export const ProviderInventoryTable = ({
       switch (columnKey) {
         case "imagen":
           return (
-            <div className="w-16 h-16 flex items-center justify-center bg-zinc-50 border border-zinc-100 rounded-lg p-1.5">
+            <div className="w-16 h-16 flex items-center justify-center bg-default-100 border border-divider rounded-lg p-1.5">
               <Image
                 src={product.imagenUrl}
                 alt={product.modelo}
@@ -57,25 +57,25 @@ export const ProviderInventoryTable = ({
           );
         case "marca":
           return (
-            <span className="font-medium text-zinc-500 tracking-wide text-sm">
+            <span className="font-medium text-default-500 tracking-wide text-sm">
               {product.marca}
             </span>
           );
         case "modelo":
           return (
-            <span className="font-medium text-zinc-900 tracking-tight">
+            <span className="font-medium text-foreground tracking-tight">
               {product.modelo}
             </span>
           );
         case "proveedor":
           return (
-            <span className="font-medium text-zinc-600">
+            <span className="font-medium text-default-500">
               {product.proveedor}
             </span>
           );
         case "precio":
           return (
-            <span className="font-light text-zinc-900 tracking-tight">
+            <span className="font-light text-foreground tracking-tight">
               ${product.precio.toLocaleString()}
             </span>
           );
@@ -87,8 +87,8 @@ export const ProviderInventoryTable = ({
               size="sm"
               className={`font-medium tracking-wide ${
                 product.stock > 0
-                  ? "bg-zinc-100 text-zinc-700"
-                  : "bg-red-50 text-red-600"
+                  ? "bg-default-200 text-foreground"
+                  : "bg-danger/20 text-danger"
               }`}
             >
               {product.stock} unds.
@@ -98,7 +98,7 @@ export const ProviderInventoryTable = ({
           if (isAdmin) {
             // Vista de solo lectura para el Administrador
             return (
-              <div className="flex items-center justify-center gap-1.5 text-zinc-400">
+              <div className="flex items-center justify-center gap-1.5 text-default-400">
                 <Lock size={14} strokeWidth={1.5} />
                 <span className="text-xs font-light tracking-wide">
                   Solo lectura
@@ -114,7 +114,7 @@ export const ProviderInventoryTable = ({
                 color="default"
                 variant="light"
                 size="sm"
-                className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
+                className="text-default-500 hover:text-foreground hover:bg-default-200 transition-colors"
                 onPress={() => onEditClick(product)}
               >
                 <Pencil size={16} strokeWidth={1.5} />
@@ -124,7 +124,7 @@ export const ProviderInventoryTable = ({
                 color="danger"
                 variant="light"
                 size="sm"
-                className="text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                className="text-default-400 hover:text-danger hover:bg-danger/20 transition-colors"
                 onPress={() => onDeleteClick(product)}
               >
                 <Trash2 size={16} strokeWidth={1.5} />
@@ -143,8 +143,8 @@ export const ProviderInventoryTable = ({
       aria-label="Tabla de inventario"
       removeWrapper
       classNames={{
-        th: "bg-zinc-50/50 text-zinc-500 font-semibold tracking-wider text-xs px-6 py-4 border-b border-zinc-100 uppercase",
-        td: "px-6 py-4 border-b border-zinc-50/80 last:border-0",
+        th: "bg-default-100 text-default-500 font-semibold tracking-wider text-xs px-6 py-4 border-b border-divider uppercase",
+        td: "px-6 py-4 border-b border-divider last:border-0",
       }}
     >
       <TableHeader columns={columns}>
@@ -161,7 +161,7 @@ export const ProviderInventoryTable = ({
         {(item) => (
           <TableRow
             key={item.id}
-            className="hover:bg-zinc-50/50 transition-colors"
+            className="hover:bg-default-100 transition-colors"
           >
             {(columnKey) => (
               <TableCell>{renderCell(item, columnKey)}</TableCell>

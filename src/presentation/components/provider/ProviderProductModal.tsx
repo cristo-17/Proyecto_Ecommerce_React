@@ -69,10 +69,10 @@ export const ProviderProductModal = ({
   // Clases compartidas para los Inputs minimalistas
   const inputMinimalistClasses = {
     inputWrapper:
-      "border-zinc-200 bg-white shadow-none hover:border-zinc-300 focus-within:!border-zinc-900 transition-colors",
-    label: "text-zinc-500 font-medium text-xs",
-    input: "text-zinc-900 placeholder:text-zinc-400",
-    errorMessage: "text-red-500 text-xs font-medium mt-1",
+      "border-default-200 bg-content1 shadow-none hover:border-default-400 focus-within:!border-foreground transition-colors",
+    label: "text-default-500 font-medium text-xs",
+    input: "text-foreground placeholder:text-default-400",
+    errorMessage: "text-danger text-xs font-medium mt-1",
   };
 
   return (
@@ -83,14 +83,14 @@ export const ProviderProductModal = ({
       scrollBehavior="inside"
       backdrop="blur"
       classNames={{
-        base: "bg-white rounded-2xl shadow-sm border border-zinc-200/60",
-        header: "border-b border-zinc-100 py-5 px-8",
+        base: "bg-content1 rounded-2xl shadow-sm border border-divider",
+        header: "border-b border-divider py-5 px-8",
         body: "py-6 px-8",
-        footer: "border-t border-zinc-100 py-5 px-8",
+        footer: "border-t border-divider py-5 px-8",
       }}
     >
       <ModalContent>
-        <ModalHeader className="text-xl font-bold text-zinc-900 tracking-tight">
+        <ModalHeader className="text-xl font-bold text-foreground tracking-tight">
           {productToEdit ? "Editar Equipo" : "Publicar Nuevo Equipo"}
         </ModalHeader>
         <ModalBody>
@@ -102,7 +102,7 @@ export const ProviderProductModal = ({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Preview de Imagen y URL */}
               <div className="flex flex-col gap-5">
-                <div className="w-full h-64 bg-zinc-50 rounded-xl border border-dashed border-zinc-300 flex items-center justify-center overflow-hidden p-2">
+                <div className="w-full h-64 bg-default-100 rounded-xl border border-dashed border-default-300 flex items-center justify-center overflow-hidden p-2">
                   {watchedImageUrl ? (
                     <Image
                       src={watchedImageUrl}
@@ -110,7 +110,7 @@ export const ProviderProductModal = ({
                       radius="none"
                     />
                   ) : (
-                    <span className="text-zinc-400 font-light text-sm tracking-wide">
+                    <span className="text-default-400 font-light text-sm tracking-wide">
                       Vista previa de imagen
                     </span>
                   )}
@@ -130,7 +130,7 @@ export const ProviderProductModal = ({
               <div className="lg:col-span-2 flex flex-col gap-6">
                 {/* Bloque: Datos Generales */}
                 <div>
-                  <h3 className="text-xs font-semibold text-zinc-900 uppercase tracking-widest border-b border-zinc-100 pb-3 mb-4">
+                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-widest border-b border-divider pb-3 mb-4">
                     Datos Generales
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -181,7 +181,7 @@ export const ProviderProductModal = ({
 
                 {/* Bloque: Especificaciones Técnicas */}
                 <div>
-                  <h3 className="text-xs font-semibold text-zinc-900 uppercase tracking-widest border-b border-zinc-100 pb-3 mb-4 mt-2">
+                  <h3 className="text-xs font-semibold text-foreground uppercase tracking-widest border-b border-divider pb-3 mb-4 mt-2">
                     Especificaciones Técnicas
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -250,7 +250,7 @@ export const ProviderProductModal = ({
             color="default"
             variant="light"
             onPress={onClose}
-            className="font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
+            className="font-medium text-default-500 hover:text-foreground transition-colors"
           >
             Cancelar
           </Button>
@@ -258,7 +258,7 @@ export const ProviderProductModal = ({
             color="default"
             type="submit"
             form="product-form"
-            className="font-medium bg-zinc-900 text-white shadow-none hover:bg-zinc-800 transition-colors px-6"
+            className="font-medium bg-foreground text-background shadow-none hover:opacity-80 transition-colors px-6"
           >
             {productToEdit ? "Guardar Cambios" : "Publicar Equipo"}
           </Button>

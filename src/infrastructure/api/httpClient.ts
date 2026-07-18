@@ -1,22 +1,55 @@
 // src/infrastructure/api/httpClient.ts
-import axios from 'axios';
+import axios from "axios";
+import { useAuthStore } from "../../application/store/useAuthStore";
 
-// En desarrollo apuntará a localhost:3000 (json-server), luego al de Spring Boot.
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-
+// ==========================================
+// 1. Instancia Base
+// ==========================================
 export const httpClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: "http://localhost:8080/api",
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
-  timeout: 5000,
 });
 
-// Interceptor para inyectar token de seguridad (JWT)
-httpClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token');
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+// ==========================================
+// 2. Interceptor de Peticiones (Request)
+// ==========================================
+httpClient.interceptors.request.use(
+  (config) => {
+    // Extraemos el token del store leyendo el estado directamente
+    // (Esto evita romper las reglas de los hooks de React)
+    const { token } = useAuthStore.getState();
+
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-});
+);
+
+// ==========================================
+// 3. Interceptor de Respuestas (Response)
+// ==========================================
+httpClient.interceptors.response.use(
+  (response) => {
+    // Petición exitosa, pasamos la respuesta intacta
+    return response;
+  },
+  (error) => {
+    // Validación 401: Token expirado, inválido o ausente
+    if (error.response?.status === 401) {
+      // Limpiamos la sesión en el estado global
+      useAuthStore.getState().logout();
+      
+      // Redirección forzada de seguridad hacia el inicio de sesión
+      window.location.href = "/login";
+    }
+
+    return Promise.reject(error);
+  }
+);

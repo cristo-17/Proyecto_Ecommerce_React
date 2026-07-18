@@ -1,6 +1,4 @@
 // src/presentation/pages/ProveedorForm.tsx
-import { useState } from "react";
-import { useForm } from "react-hook-form";
 import { Card, CardHeader, CardBody } from "@heroui/card";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
@@ -22,90 +20,50 @@ import {
 } from "@heroui/modal";
 import { Select, SelectItem } from "@heroui/select";
 import { AlertTriangle, Trash2, Pencil } from "lucide-react";
-
-// Mock Data alineado con la interfaz de dominio (emailContacto)
-const INITIAL_PROVIDERS = [
-  {
-    id: "prov-1",
-    razonSocial: "Samsung Global",
-    ruc: "20123456789",
-    emailContacto: "samsung@corp.com",
-    telefono: "999-888-777",
-    direccion: "Av. Tecnológica 123",
-    estado: "ACTIVO",
-  },
-  {
-    id: "prov-2",
-    razonSocial: "AppleCorp Peru",
-    ruc: "20987654321",
-    emailContacto: "ventas@apple.pe",
-    telefono: "987-654-321",
-    direccion: "Av. Las Manzanas 456",
-    estado: "ACTIVO",
-  },
-];
+import { useProviderForm } from "../../application/hooks/useProviderForm";
+import { useAuthStore } from "../../application/store/useAuthStore";
 
 export const ProveedorForm = () => {
-  const userRole = localStorage.getItem("user_role") || "INVITADO";
+  // Consumo del Custom Hook (La vista queda 100% "tonta")
+  const {
+    providers,
+    formData,
+    isDeleteModalOpen,
+    providerToDelete,
+    isRegisterOpen,
+    isEditModalOpen,
+    providerToEdit,
+    setIsDeleteModalOpen,
+    setIsRegisterOpen,
+    setIsEditModalOpen,
+    handleRucChange,
+    handlePhoneChange,
+    handleRazonChange,
+    handleCorreoChange,
+    handleDireccionChange,
+    enforceRucMask,
+    enforcePhoneMask,
+    enforceTextLimit50,
+    enforceTextLimit30,
+    enforceTextLimit100,
+    onSubmitProvider,
+    handleOpenDelete,
+    handleConfirmDelete,
+    handleRegisterSubmit,
+    handleOpenEdit,
+    handleEditSubmit,
+  } = useProviderForm();
 
-  // --- ESTADOS PARA MODO ADMIN ---
-  const [providers, setProviders] = useState(INITIAL_PROVIDERS);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [providerToDelete, setProviderToDelete] = useState<any>(null);
+  // 1. Corrección de Autenticación
+  const { user } = useAuthStore();
+  const userRole = user?.rol || "INVITADO";
 
-  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [providerToEdit, setProviderToEdit] = useState<any>(null);
-
-  // --- HOOK FORM PARA MODO PROVEEDOR ---
-  const { register, handleSubmit } = useForm({
-    defaultValues: {
-      razonSocial: "Samsung Global",
-      ruc: "20123456789",
-      telefono: "999-888-777",
-      direccion: "Av. Tecnológica 123",
-    },
-  });
-
-  // --- HANDLERS ---
-  const onSubmitProvider = (data: any) => {
-    alert("Datos actualizados: " + JSON.stringify(data));
-  };
-
-  const handleOpenDelete = (provider: any) => {
-    setProviderToDelete(provider);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleConfirmDelete = () => {
-    setProviders(providers.filter((p) => p.id !== providerToDelete?.id));
-    setIsDeleteModalOpen(false);
-    setProviderToDelete(null);
-  };
-
-  const handleRegisterSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsRegisterOpen(false);
-    alert("Proveedor registrado exitosamente con estado ACTIVO.");
-  };
-
-  const handleOpenEdit = (provider: any) => {
-    setProviderToEdit(provider);
-    setIsEditModalOpen(true);
-  };
-
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsEditModalOpen(false);
-    alert("Proveedor editado exitosamente.");
-  };
-
-  // Clases compartidas para inputs minimalistas
+  // Clases compartidas para inputs minimalistas premium (3. Limpieza de Bordes y Estados)
   const inputMinimalistClasses = {
     inputWrapper:
-      "border-zinc-200 bg-white shadow-none hover:border-zinc-300 focus-within:!border-zinc-900 transition-colors",
-    label: "text-zinc-500 font-medium text-xs",
-    input: "text-zinc-900 placeholder:text-zinc-400",
+      "border-default-200 bg-content1 shadow-none hover:border-default-300 focus-within:!border-foreground transition-colors",
+    label: "text-default-500 font-medium text-xs",
+    input: "text-foreground placeholder:text-default-400",
   };
 
   // ----------------------------------------------------
@@ -116,52 +74,73 @@ export const ProveedorForm = () => {
       <div className="flex justify-center items-start w-full max-w-4xl mx-auto">
         <Card
           shadow="none"
-          className="w-full bg-white border border-zinc-200/60 rounded-2xl mt-4"
+          className="w-full bg-content1 border border-divider rounded-2xl mt-4"
         >
-          <CardHeader className="px-8 pt-8 pb-4 border-b border-zinc-100">
+          <CardHeader className="px-8 pt-8 pb-4 border-b border-divider">
             <div>
-              <h2 className="text-2xl font-semibold text-zinc-900 tracking-tight">
+              <h2 className="text-2xl font-semibold text-foreground tracking-tight">
                 Mis Datos de Empresa
               </h2>
-              <p className="text-sm font-light text-zinc-500 mt-1">
+              <p className="text-sm font-light text-default-500 mt-1">
                 Actualiza la información visible de tu compañía.
               </p>
             </div>
           </CardHeader>
           <CardBody className="p-8">
-            <form
-              onSubmit={handleSubmit(onSubmitProvider)}
-              className="flex flex-col gap-6"
-            >
+            <form onSubmit={onSubmitProvider} className="flex flex-col gap-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Input
-                  {...register("razonSocial")}
+                  name="razonSocial"
+                  value={formData.razonSocial}
+                  onChange={handleRazonChange}
+                  maxLength={50}
                   label="Razón Social"
                   variant="bordered"
                   classNames={inputMinimalistClasses}
                 />
                 <Input
-                  {...register("ruc")}
+                  name="ruc"
+                  value={formData.ruc}
+                  onChange={handleRucChange}
+                  maxLength={11}
                   label="RUC"
                   variant="bordered"
-                  isDisabled
+                  // 1. Solución al TS Error (Hardcoded)
+                  isDisabled={true}
                   description={
-                    <span className="text-zinc-400 text-xs">
-                      El RUC no puede ser modificado
+                    <span className="text-default-400 text-xs">
+                      Solo el administrador puede modificar el RUC.
                     </span>
                   }
                   classNames={inputMinimalistClasses}
                 />
                 <Input
-                  {...register("telefono")}
+                  name="correo"
+                  value={formData.correo}
+                  onChange={handleCorreoChange}
+                  maxLength={30}
+                  label="Correo de Contacto"
+                  type="email"
+                  variant="bordered"
+                  classNames={inputMinimalistClasses}
+                />
+                <Input
+                  name="telefono"
+                  value={formData.telefono}
+                  onChange={handlePhoneChange}
+                  maxLength={9}
                   label="Teléfono de Contacto"
                   variant="bordered"
                   classNames={inputMinimalistClasses}
                 />
                 <Input
-                  {...register("direccion")}
+                  name="direccion"
+                  value={formData.direccion}
+                  onChange={handleDireccionChange}
+                  maxLength={100}
                   label="Dirección Fiscal"
                   variant="bordered"
+                  className="md:col-span-2"
                   classNames={inputMinimalistClasses}
                 />
               </div>
@@ -171,7 +150,7 @@ export const ProveedorForm = () => {
                   type="submit"
                   color="default"
                   size="lg"
-                  className="font-medium bg-zinc-900 text-white hover:bg-zinc-800 shadow-none px-8 transition-colors"
+                  className="font-medium bg-foreground text-background hover:opacity-80 shadow-none px-8 transition-colors"
                 >
                   Guardar Cambios
                 </Button>
@@ -188,19 +167,19 @@ export const ProveedorForm = () => {
   // ----------------------------------------------------
   return (
     <div className="flex flex-col gap-8 w-full max-w-5xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-8 rounded-2xl border border-zinc-200/60 gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-content1 p-8 rounded-2xl border border-divider gap-4">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-semibold text-zinc-900 tracking-tight">
+          <h1 className="text-2xl lg:text-3xl font-semibold text-foreground tracking-tight">
             Gestión de Proveedores
           </h1>
-          <p className="text-zinc-500 font-light mt-2 tracking-wide">
+          <p className="text-default-500 font-light mt-2 tracking-wide">
             Administra las empresas asociadas a la plataforma y sus estados.
           </p>
         </div>
         <Button
           color="default"
           size="lg"
-          className="font-medium bg-zinc-900 text-white hover:bg-zinc-800 shadow-none transition-colors"
+          className="font-medium bg-foreground text-background hover:opacity-80 shadow-none transition-colors"
           onPress={() => setIsRegisterOpen(true)}
         >
           + Registrar Proveedor
@@ -209,15 +188,15 @@ export const ProveedorForm = () => {
 
       <Card
         shadow="none"
-        className="bg-white border border-zinc-200/60 rounded-2xl overflow-hidden"
+        className="bg-content1 border border-divider rounded-2xl overflow-hidden"
       >
         <CardBody className="p-0">
           <Table
             aria-label="Gestión de proveedores"
             removeWrapper
             classNames={{
-              th: "bg-zinc-50/50 text-zinc-500 font-semibold tracking-wider text-xs px-6 py-4 border-b border-zinc-100 uppercase",
-              td: "px-6 py-4 border-b border-zinc-50/80 last:border-0",
+              th: "bg-default-100 text-default-500 font-semibold tracking-wider text-xs px-6 py-4 border-b border-divider uppercase",
+              td: "px-6 py-4 border-b border-divider last:border-0",
             }}
           >
             <TableHeader>
@@ -231,15 +210,15 @@ export const ProveedorForm = () => {
               {(item) => (
                 <TableRow
                   key={item.id}
-                  className="hover:bg-zinc-50/50 transition-colors"
+                  className="hover:bg-default-100 transition-colors"
                 >
-                  <TableCell className="font-medium text-zinc-900 tracking-tight">
+                  <TableCell className="font-medium text-foreground tracking-tight">
                     {item.razonSocial}
                   </TableCell>
-                  <TableCell className="text-zinc-500 font-light tracking-wide">
+                  <TableCell className="text-default-500 font-light tracking-wide">
                     {item.ruc}
                   </TableCell>
-                  <TableCell className="text-zinc-500 font-light">
+                  <TableCell className="text-default-500 font-light">
                     {item.emailContacto}
                   </TableCell>
                   <TableCell>
@@ -249,8 +228,8 @@ export const ProveedorForm = () => {
                       size="sm"
                       className={`font-medium tracking-wide ${
                         item.estado === "ACTIVO"
-                          ? "bg-zinc-100 text-zinc-700"
-                          : "bg-red-50 text-red-600"
+                          ? "bg-default-200 text-foreground"
+                          : "bg-danger/20 text-danger"
                       }`}
                     >
                       {item.estado}
@@ -263,7 +242,7 @@ export const ProveedorForm = () => {
                         size="sm"
                         color="default"
                         variant="light"
-                        className="text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
+                        className="text-default-500 hover:text-foreground hover:bg-default-200 transition-colors"
                         onPress={() => handleOpenEdit(item)}
                       >
                         <Pencil size={16} strokeWidth={1.5} />
@@ -273,7 +252,7 @@ export const ProveedorForm = () => {
                         size="sm"
                         color="danger"
                         variant="light"
-                        className="text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        className="text-default-400 hover:text-danger hover:bg-danger/20 transition-colors"
                         onPress={() => handleOpenDelete(item)}
                       >
                         <Trash2 size={16} strokeWidth={1.5} />
@@ -294,28 +273,28 @@ export const ProveedorForm = () => {
         size="md"
         backdrop="blur"
         classNames={{
-          base: "bg-white rounded-2xl shadow-sm border border-zinc-200/60",
-          header: "border-b border-zinc-100 py-4 px-6",
+          base: "bg-content1 rounded-2xl shadow-sm border border-divider",
+          header: "border-b border-divider py-4 px-6",
           body: "py-6 px-6",
-          footer: "border-t border-zinc-100 py-4 px-6",
+          footer: "border-t border-divider py-4 px-6",
         }}
       >
         <ModalContent>
-          <ModalHeader className="flex gap-3 items-center text-zinc-900 font-semibold text-lg tracking-tight">
-            <div className="p-2 bg-red-50 rounded-full text-red-600">
+          <ModalHeader className="flex gap-3 items-center text-foreground font-semibold text-lg tracking-tight">
+            <div className="p-2 bg-danger/20 rounded-full text-danger">
               <AlertTriangle size={18} strokeWidth={2} />
             </div>
             Advertencia Crítica
           </ModalHeader>
           <ModalBody>
-            <p className="text-zinc-600 font-light text-sm leading-relaxed">
+            <p className="text-default-500 font-light text-sm leading-relaxed">
               Estás a punto de eliminar al proveedor{" "}
-              <strong className="font-semibold text-zinc-900">
+              <strong className="font-semibold text-foreground">
                 {providerToDelete?.razonSocial}
               </strong>
               .
             </p>
-            <div className="bg-red-50/50 border border-red-200 text-red-700 p-4 rounded-xl text-sm mt-2 leading-relaxed">
+            <div className="bg-danger/10 border border-danger/30 text-danger p-4 rounded-xl text-sm mt-2 leading-relaxed">
               <strong className="font-semibold">Borrado en Cascada:</strong>{" "}
               Esta acción eliminará permanentemente todos los celulares,
               inventario y reseñas asociados a este proveedor del catálogo
@@ -326,7 +305,7 @@ export const ProveedorForm = () => {
             <Button
               color="default"
               variant="light"
-              className="font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
+              className="font-medium text-default-500 hover:text-foreground transition-colors"
               onPress={() => setIsDeleteModalOpen(false)}
             >
               Cancelar
@@ -334,7 +313,7 @@ export const ProveedorForm = () => {
             <Button
               color="danger"
               onPress={handleConfirmDelete}
-              className="font-medium bg-red-600 text-white hover:bg-red-700 shadow-none px-6 transition-colors"
+              className="font-medium bg-danger text-white hover:bg-danger/80 shadow-none px-6 transition-colors"
             >
               Eliminar Definitivamente
             </Button>
@@ -349,15 +328,15 @@ export const ProveedorForm = () => {
         size="lg"
         backdrop="blur"
         classNames={{
-          base: "bg-white rounded-2xl shadow-sm border border-zinc-200/60",
-          header: "border-b border-zinc-100 py-5 px-8",
+          base: "bg-content1 rounded-2xl shadow-sm border border-divider",
+          header: "border-b border-divider py-5 px-8",
           body: "py-6 px-8",
-          footer: "border-t border-zinc-100 py-5 px-8",
+          footer: "border-t border-divider py-5 px-8",
         }}
       >
         <ModalContent>
           <form onSubmit={handleRegisterSubmit}>
-            <ModalHeader className="font-bold text-xl text-zinc-900 tracking-tight">
+            <ModalHeader className="font-bold text-xl text-foreground tracking-tight">
               Registrar Nuevo Proveedor
             </ModalHeader>
             <ModalBody className="flex flex-col gap-5">
@@ -366,6 +345,8 @@ export const ProveedorForm = () => {
                 placeholder="Ej. TechCorp SAC"
                 variant="bordered"
                 isRequired
+                maxLength={50}
+                onChange={enforceTextLimit50}
                 classNames={inputMinimalistClasses}
               />
               <Input
@@ -373,6 +354,9 @@ export const ProveedorForm = () => {
                 placeholder="Ej. 20123456789"
                 variant="bordered"
                 isRequired
+                maxLength={11}
+                onChange={enforceRucMask}
+                isDisabled={userRole !== "ADMIN"}
                 classNames={inputMinimalistClasses}
               />
               <Input
@@ -381,6 +365,8 @@ export const ProveedorForm = () => {
                 placeholder="contacto@techcorp.com"
                 variant="bordered"
                 isRequired
+                maxLength={30}
+                onChange={enforceTextLimit30}
                 classNames={inputMinimalistClasses}
               />
               <div className="grid grid-cols-2 gap-5">
@@ -389,6 +375,8 @@ export const ProveedorForm = () => {
                   placeholder="Ej. 999 888 777"
                   variant="bordered"
                   isRequired
+                  maxLength={9}
+                  onChange={enforcePhoneMask}
                   classNames={inputMinimalistClasses}
                 />
                 <Input
@@ -396,6 +384,8 @@ export const ProveedorForm = () => {
                   placeholder="Ej. Av. Principal 123"
                   variant="bordered"
                   isRequired
+                  maxLength={100}
+                  onChange={enforceTextLimit100}
                   classNames={inputMinimalistClasses}
                 />
               </div>
@@ -404,7 +394,7 @@ export const ProveedorForm = () => {
               <Button
                 color="default"
                 variant="light"
-                className="font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
+                className="font-medium text-default-500 hover:text-foreground transition-colors"
                 onPress={() => setIsRegisterOpen(false)}
               >
                 Cancelar
@@ -412,7 +402,7 @@ export const ProveedorForm = () => {
               <Button
                 color="default"
                 type="submit"
-                className="font-medium bg-zinc-900 text-white shadow-none hover:bg-zinc-800 transition-colors px-6"
+                className="font-medium bg-foreground text-background shadow-none hover:opacity-80 transition-colors px-6"
               >
                 Guardar Proveedor
               </Button>
@@ -428,15 +418,15 @@ export const ProveedorForm = () => {
         size="lg"
         backdrop="blur"
         classNames={{
-          base: "bg-white rounded-2xl shadow-sm border border-zinc-200/60",
-          header: "border-b border-zinc-100 py-5 px-8",
+          base: "bg-content1 rounded-2xl shadow-sm border border-divider",
+          header: "border-b border-divider py-5 px-8",
           body: "py-6 px-8",
-          footer: "border-t border-zinc-100 py-5 px-8",
+          footer: "border-t border-divider py-5 px-8",
         }}
       >
         <ModalContent>
           <form onSubmit={handleEditSubmit}>
-            <ModalHeader className="font-bold text-xl text-zinc-900 tracking-tight">
+            <ModalHeader className="font-bold text-xl text-foreground tracking-tight">
               Editar Proveedor
             </ModalHeader>
             <ModalBody className="flex flex-col gap-5">
@@ -445,18 +435,24 @@ export const ProveedorForm = () => {
                 defaultValue={providerToEdit?.razonSocial}
                 variant="bordered"
                 isRequired
+                maxLength={50}
+                onChange={enforceTextLimit50}
                 classNames={inputMinimalistClasses}
               />
               <Input
                 label="RUC"
                 defaultValue={providerToEdit?.ruc}
                 variant="bordered"
-                isDisabled
+                isDisabled={userRole !== "ADMIN"}
                 description={
-                  <span className="text-zinc-400 text-xs">
-                    El RUC no puede ser modificado
-                  </span>
+                  userRole !== "ADMIN" ? (
+                    <span className="text-default-400 text-xs">
+                      Solo el administrador puede modificar el RUC.
+                    </span>
+                  ) : null
                 }
+                maxLength={11}
+                onChange={enforceRucMask}
                 classNames={inputMinimalistClasses}
               />
               <Input
@@ -465,6 +461,8 @@ export const ProveedorForm = () => {
                 type="email"
                 variant="bordered"
                 isRequired
+                maxLength={30}
+                onChange={enforceTextLimit30}
                 classNames={inputMinimalistClasses}
               />
               <div className="grid grid-cols-2 gap-5">
@@ -473,6 +471,8 @@ export const ProveedorForm = () => {
                   defaultValue={providerToEdit?.telefono || ""}
                   variant="bordered"
                   isRequired
+                  maxLength={9}
+                  onChange={enforcePhoneMask}
                   classNames={inputMinimalistClasses}
                 />
                 <Input
@@ -480,11 +480,13 @@ export const ProveedorForm = () => {
                   defaultValue={providerToEdit?.direccion || ""}
                   variant="bordered"
                   isRequired
+                  maxLength={100}
+                  onChange={enforceTextLimit100}
                   classNames={inputMinimalistClasses}
                 />
               </div>
 
-              <div className="pt-2 border-t border-zinc-100 mt-2">
+              <div className="pt-2 border-t border-divider mt-2">
                 <Select
                   label="Estado de la Cuenta"
                   variant="bordered"
@@ -494,15 +496,15 @@ export const ProveedorForm = () => {
                   isRequired
                   classNames={{
                     trigger:
-                      "border-zinc-200 bg-white shadow-none hover:border-zinc-300 focus-within:!border-zinc-900 transition-colors",
-                    label: "text-zinc-500 font-medium text-xs",
-                    value: "text-zinc-900",
+                      "border-default-200 bg-content1 shadow-none hover:border-default-300 focus-within:!border-foreground transition-colors",
+                    label: "text-default-500 font-medium text-xs",
+                    value: "text-foreground",
                   }}
                 >
                   <SelectItem key="ACTIVO">Activo</SelectItem>
                   <SelectItem key="INACTIVO">Inactivo</SelectItem>
                 </Select>
-                <p className="text-xs text-zinc-400 font-light mt-2 ml-1">
+                <p className="text-xs text-default-400 font-light mt-2 ml-1">
                   Cambiar a inactivo ocultará los productos del catálogo.
                 </p>
               </div>
@@ -511,7 +513,7 @@ export const ProveedorForm = () => {
               <Button
                 color="default"
                 variant="light"
-                className="font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
+                className="font-medium text-default-500 hover:text-foreground transition-colors"
                 onPress={() => setIsEditModalOpen(false)}
               >
                 Cancelar
@@ -519,7 +521,7 @@ export const ProveedorForm = () => {
               <Button
                 color="default"
                 type="submit"
-                className="font-medium bg-zinc-900 text-white shadow-none hover:bg-zinc-800 transition-colors px-6"
+                className="font-medium bg-foreground text-background shadow-none hover:opacity-80 transition-colors px-6"
               >
                 Guardar Cambios
               </Button>

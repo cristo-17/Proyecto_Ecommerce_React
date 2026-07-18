@@ -14,27 +14,27 @@ export const TermsOfService = () => {
           variant="light"
           color="default"
           startContent={<ArrowLeft size={18} />}
-          className="font-medium"
+          className="font-medium text-default-500 hover:text-foreground transition-colors"
         >
           Volver al inicio
         </Button>
       </div>
 
       <div className="flex flex-col gap-6">
-        <Card className="shadow-sm border border-gray-100">
+        <Card className="bg-content1 shadow-sm border border-divider">
           <CardHeader className="flex-col items-start px-6 pt-6 pb-4">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-foreground">
               Términos de Servicio
             </h1>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-default-500 mt-2">
               Última actualización: 13/07/2026
             </p>
           </CardHeader>
         </Card>
 
-        <Card className="shadow-sm border border-gray-100">
+        <Card className="bg-content1 shadow-sm border border-divider">
           <CardBody className="px-6 py-8">
-            <div className="space-y-6 text-gray-700 leading-relaxed">
+            <div className="space-y-6 text-default-500 leading-relaxed">
               <p>
                 Bienvenido a AppCelulares. Al navegar en nuestro sitio o
                 realizar una compra, aceptas los términos que rigen nuestra
@@ -43,7 +43,7 @@ export const TermsOfService = () => {
               </p>
 
               <div className="space-y-2">
-                <h2 className="text-lg font-bold text-gray-900">
+                <h2 className="text-lg font-bold text-foreground">
                   1. Disponibilidad de Productos:
                 </h2>
                 <p>
@@ -57,7 +57,7 @@ export const TermsOfService = () => {
               </div>
 
               <div className="space-y-2">
-                <h2 className="text-lg font-bold text-gray-900">
+                <h2 className="text-lg font-bold text-foreground">
                   2. Procesos de Envío y Entrega:
                 </h2>
                 <p>
@@ -71,7 +71,7 @@ export const TermsOfService = () => {
               </div>
 
               <div className="space-y-2">
-                <h2 className="text-lg font-bold text-gray-900">
+                <h2 className="text-lg font-bold text-foreground">
                   3. Garantía y Devoluciones:
                 </h2>
                 <p>
@@ -86,7 +86,7 @@ export const TermsOfService = () => {
               </div>
 
               <div className="space-y-2">
-                <h2 className="text-lg font-bold text-gray-900">
+                <h2 className="text-lg font-bold text-foreground">
                   4. Pagos y Seguridad:
                 </h2>
                 <p>

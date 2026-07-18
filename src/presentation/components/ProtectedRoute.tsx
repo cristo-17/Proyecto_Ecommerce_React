@@ -1,26 +1,26 @@
 // src/presentation/components/ProtectedRoute.tsx
 import { Navigate, Outlet } from "react-router-dom";
-import { RolUsuario } from "../../domain/models/appCelulares.model";
+import { useAuthStore } from "../../application/store/useAuthStore";
+import type { RolUsuario } from "../../domain/models/appCelulares.model";
 
 interface ProtectedRouteProps {
   allowedRoles?: RolUsuario[];
 }
 
 export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
-  // Simulación: En la arquitectura final estos datos vendrán de Zustand o Context
-  const token = localStorage.getItem("auth_token");
-  const userRole = localStorage.getItem("user_role") as RolUsuario | null;
+  // 1. Consumo del Estado Global (Zustand)
+  const { isAuthenticated, user } = useAuthStore();
 
-  // 1. Si no hay token, enviar al login
-  if (!token) {
+  // 2. Validación 1 (Autenticación): Si no hay sesión activa, redirigir al login
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // 2. Si la ruta exige roles específicos y el usuario no cuenta con ellos, denegar
-  if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
-    return <Navigate to="/" replace />; // Opcional: Redirigir a una vista de "No Autorizado"
+  // 3. Validación 2 (Autorización): Si la ruta requiere roles específicos y el usuario no los tiene
+  if (allowedRoles && user && !allowedRoles.includes(user.rol as RolUsuario)) {
+    return <Navigate to="/" replace />;
   }
 
-  // 3. Usuario autenticado y autorizado
+  // 4. Pase Libre: Usuario autenticado y con los permisos correctos
   return <Outlet />;
 };
