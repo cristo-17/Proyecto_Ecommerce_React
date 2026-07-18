@@ -9,15 +9,12 @@ import { RadioGroup, Radio } from "@heroui/radio";
 import { Divider } from "@heroui/divider";
 import { Home, Store } from "lucide-react";
 import { useCartStore } from "../../application/store/useCartStore";
-import { httpClient } from "../../infrastructure/api/httpClient";
+import { processPayUCheckout } from "../../infrastructure/payments/payuService";
 
 export const Checkout = () => {
   const navigate = useNavigate();
-
-  // Consumo del Store Global
   const { items, clearCart } = useCartStore();
 
-  // 1. Gestión de Estado Local (Cupones)
   const [couponInput, setCouponInput] = useState("");
   const [discountPercent, setDiscountPercent] = useState(0);
   const [couponStatus, setCouponStatus] = useState<{
@@ -25,9 +22,10 @@ export const Checkout = () => {
     type: "success" | "error" | null;
   }>({ message: "", type: null });
 
-  // Gestión de Estado Local del Formulario
+  const [deliveryMethod, setDeliveryMethod] = useState("domicilio");
   const [formData, setFormData] = useState({
     nombre: "",
+    dni: "",
     telefono: "",
     direccion: "",
     referencia: "",
@@ -35,7 +33,6 @@ export const Checkout = () => {
   const [metodoPago, setMetodoPago] = useState("tarjeta");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 3. Recálculo Dinámico de Precios
   const subtotal = items.reduce(
     (acc, item) => acc + item.precio * item.quantity,
     0,
@@ -44,7 +41,6 @@ export const Checkout = () => {
   const taxes = (subtotal - discountAmount) * 0.12;
   const total = subtotal - discountAmount + taxes;
 
-  // 2. Lógica de Validación (Mock Engine)
   const handleApplyCoupon = () => {
     const code = couponInput.trim().toUpperCase();
     if (code === "VERANO20") {
@@ -76,35 +72,78 @@ export const Checkout = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "telefono" || name === "dni") {
+      setFormData((prev) => ({ ...prev, [name]: value.replace(/\D/g, "") }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
   };
 
-  // Petición HTTP (El Puente hacia Java y PayU)
   const handleSubmitOrder = async () => {
     if (items.length === 0) {
       alert("Tu carrito está vacío.");
       return;
     }
 
+    if (deliveryMethod === "domicilio") {
+      if (
+        !formData.nombre.trim() ||
+        !formData.dni.trim() ||
+        !formData.telefono.trim() ||
+        !formData.direccion.trim()
+      ) {
+        alert("Por favor completa los datos obligatorios.");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
 
     try {
-      const orderPayload = {
-        items: items.map((item) => ({ id: item.id, quantity: item.quantity })),
-        cliente: formData,
-        metodoPago,
-        total,
-      };
+      const referenceCode = "ORD-" + Date.now();
+      const amountStr = Number(total.toFixed(2)).toString();
 
-      await httpClient.post("/pagos/payu/procesar", orderPayload);
+      // INYECCIÓN ANTIFRAUDE: Añade números aleatorios al correo para burlar el caché de Sandbox
+      const randomSuffix = Math.floor(Math.random() * 100000);
+      const buyerEmail = formData.nombre
+        ? formData.nombre.toLowerCase().replace(/\s/g, "") +
+          randomSuffix +
+          "@test.com"
+        : "cliente" + randomSuffix + "@appcelulares.pe";
 
-      clearCart();
-      alert("¡Pedido enviado con éxito a nuestro sistema!");
-      navigate("/");
+      localStorage.setItem(
+        "last_order_data",
+        JSON.stringify({
+          formData,
+          items,
+          total,
+          discountPercent,
+          discountAmount,
+          taxes,
+        }),
+      );
+
+      if (metodoPago === "tarjeta") {
+        clearCart();
+        await processPayUCheckout({
+          amount: amountStr,
+          buyerEmail,
+          referenceCode,
+          buyerFullName: formData.nombre,
+          payerPhone: formData.telefono,
+          payerDNI: formData.dni,
+        });
+      } else {
+        clearCart();
+        navigate(
+          `/factura/${referenceCode}?transactionState=4&polPaymentMethod=${metodoPago}`,
+        );
+      }
     } catch (error) {
       console.error("Error al procesar el pedido:", error);
-      alert("Hubo un error al procesar tu pedido. Inténtalo nuevamente.");
-    } finally {
+      alert(
+        "Hubo un error al inicializar el pago. Verifica la consola para más detalles.",
+      );
       setIsSubmitting(false);
     }
   };
@@ -116,9 +155,7 @@ export const Checkout = () => {
       </h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-        {/* IZQUIERDA: Detalles de Envío y Pago (70%) */}
         <div className="lg:col-span-8 flex flex-col gap-8">
-          {/* Tarjeta: Método de Entrega y Contacto */}
           <Card className="bg-content1 shadow-none border border-divider rounded-2xl">
             <CardHeader className="px-7 pt-7 pb-2">
               <h2 className="text-lg font-medium text-foreground tracking-tight">
@@ -130,6 +167,8 @@ export const Checkout = () => {
                 aria-label="Opciones de entrega"
                 variant="underlined"
                 color="default"
+                selectedKey={deliveryMethod}
+                onSelectionChange={(k) => setDeliveryMethod(k as string)}
                 className="mb-6"
                 classNames={{
                   cursor: "bg-foreground",
@@ -156,6 +195,25 @@ export const Checkout = () => {
                         label="Nombre de quien recibe"
                         placeholder="Ej. Juan Pérez"
                         variant="underlined"
+                        isRequired
+                        maxLength={100}
+                        autoComplete="off"
+                        classNames={{
+                          label: "text-default-500 text-xs font-medium",
+                          input: "text-foreground",
+                        }}
+                      />
+                      <Input
+                        name="dni"
+                        value={formData.dni}
+                        onChange={handleInputChange}
+                        label="DNI"
+                        placeholder="Ej. 12345678"
+                        variant="underlined"
+                        type="text"
+                        isRequired
+                        maxLength={8}
+                        autoComplete="off"
                         classNames={{
                           label: "text-default-500 text-xs font-medium",
                           input: "text-foreground",
@@ -168,6 +226,10 @@ export const Checkout = () => {
                         label="Teléfono de contacto"
                         placeholder="Ej. 999 888 777"
                         variant="underlined"
+                        type="tel"
+                        isRequired
+                        maxLength={9}
+                        autoComplete="off"
                         classNames={{
                           label: "text-default-500 text-xs font-medium",
                           input: "text-foreground",
@@ -181,6 +243,9 @@ export const Checkout = () => {
                       label="Dirección de envío completa"
                       placeholder="Calle, número, distrito..."
                       variant="underlined"
+                      isRequired
+                      maxLength={100}
+                      autoComplete="off"
                       classNames={{
                         label: "text-default-500 text-xs font-medium",
                         input: "text-foreground",
@@ -193,6 +258,8 @@ export const Checkout = () => {
                       label="Referencia (Opcional)"
                       placeholder="Frente al parque..."
                       variant="underlined"
+                      maxLength={100}
+                      autoComplete="off"
                       classNames={{
                         label: "text-default-500 text-xs font-medium",
                         input: "text-foreground",
@@ -223,7 +290,6 @@ export const Checkout = () => {
             </CardBody>
           </Card>
 
-          {/* Tarjeta: Método de Pago */}
           <Card className="bg-content1 shadow-none border border-divider rounded-2xl">
             <CardHeader className="px-7 pt-7 pb-2">
               <h2 className="text-lg font-medium text-foreground tracking-tight">
@@ -240,21 +306,16 @@ export const Checkout = () => {
                   <div className="border border-divider rounded-xl p-5 hover:border-default-400 transition-colors bg-content1">
                     <Radio value="tarjeta">
                       <span className="font-medium text-foreground ml-2">
-                        Tarjeta de Crédito / Débito
-                      </span>
-                    </Radio>
-                  </div>
-                  <div className="border border-divider rounded-xl p-5 hover:border-default-400 transition-colors bg-content1">
-                    <Radio value="yape">
-                      <span className="font-medium text-foreground ml-2">
-                        Billetera Digital (Yape / Plin)
+                        Tarjeta de Crédito / Débito (Vía PayU)
                       </span>
                     </Radio>
                   </div>
                   <div className="border border-divider rounded-xl p-5 hover:border-default-400 transition-colors bg-content1">
                     <Radio value="efectivo">
                       <span className="font-medium text-foreground ml-2">
-                        Pago en Efectivo contra entrega
+                        {deliveryMethod === "domicilio"
+                          ? "Pago en Efectivo contra entrega"
+                          : "Pago en Efectivo en Tienda"}
                       </span>
                     </Radio>
                   </div>
@@ -264,7 +325,6 @@ export const Checkout = () => {
           </Card>
         </div>
 
-        {/* DERECHA: Resumen Pegajoso (30%) */}
         <div className="lg:col-span-4">
           <Card className="bg-default-50 shadow-none border border-divider rounded-2xl sticky top-28">
             <CardBody className="p-7">
@@ -272,7 +332,6 @@ export const Checkout = () => {
                 Resumen del pedido
               </h3>
 
-              {/* Mini-resumen de items dinámico */}
               <div className="flex flex-col gap-4 mb-6">
                 {items.map((item) => (
                   <div
@@ -291,7 +350,6 @@ export const Checkout = () => {
 
               <Divider className="my-5 bg-divider" />
 
-              {/* Costos */}
               <div className="space-y-4 text-sm text-default-500 font-light">
                 <div className="flex justify-between">
                   <span>Subtotal</span>
@@ -300,7 +358,6 @@ export const Checkout = () => {
                   </span>
                 </div>
 
-                {/* 4. Inyección Condicional del Descuento */}
                 {discountPercent > 0 && (
                   <div className="flex justify-between text-success">
                     <span className="font-medium">
@@ -326,7 +383,6 @@ export const Checkout = () => {
 
               <Divider className="my-5 bg-divider" />
 
-              {/* Cupón y Estado */}
               <div className="flex flex-col gap-2 mb-8">
                 <div className="flex gap-2">
                   <Input
@@ -335,6 +391,7 @@ export const Checkout = () => {
                     placeholder="Código de cupón"
                     size="sm"
                     variant="bordered"
+                    autoComplete="off"
                     className="flex-1"
                     classNames={{
                       inputWrapper: "border-divider bg-content1 shadow-none",
@@ -364,7 +421,6 @@ export const Checkout = () => {
                 )}
               </div>
 
-              {/* Total Final */}
               <div className="flex justify-between items-end mb-8 pt-2">
                 <span className="text-base font-medium text-foreground">
                   Total a Pagar
