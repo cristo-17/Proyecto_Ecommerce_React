@@ -11,7 +11,13 @@ import {
   TableCell,
 } from "@heroui/table";
 import { Chip } from "@heroui/chip";
-import { Package, TrendingUp } from "lucide-react";
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+} from "@heroui/dropdown";
+import { Package, Truck, ChevronDown } from "lucide-react";
 
 import { ProviderInventoryTable } from "../components/provider/ProviderInventoryTable";
 import { ProviderProductModal } from "../components/provider/ProviderProductModal";
@@ -19,7 +25,7 @@ import { ProviderDeleteModal } from "../components/provider/ProviderDeleteModal"
 import type { Product } from "../../domain/models/appCelulares.model";
 import { useAuthStore } from "../../application/store/useAuthStore";
 
-// 1. Mock Data de Inventario (Original preservado)
+// 1. Mock Data de Inventario
 const INITIAL_PRODUCTS: Product[] = [
   {
     id: "cel-001",
@@ -59,45 +65,51 @@ const INITIAL_PRODUCTS: Product[] = [
   },
 ];
 
-// 2. Mock Data de Ventas (Nueva Implementación)
-type SalesStatus = "Pagado" | "Enviado" | "Entregado";
+// 2. Mock Data de Pedidos / Logística
+type PaymentStatus = "Pagado" | "Pendiente" | "Rechazado";
+type ShippingStatus = "Pendiente" | "Preparando" | "Despachado" | "Entregado";
 
-interface Sale {
+interface Order {
   id: string;
+  customer: string;
   date: string;
-  productName: string;
-  quantity: number;
-  income: number;
-  status: SalesStatus;
-  courier?: string;
+  total: number;
+  paymentStatus: PaymentStatus;
+  shippingStatus: ShippingStatus;
 }
 
-const MOCK_SALES: Sale[] = [
+const MOCK_ORDERS: Order[] = [
   {
-    id: "VTA-8923",
+    id: "ORD-298374",
+    customer: "Juan Pérez",
     date: "17 Jul 2026",
-    productName: "Galaxy S24 Ultra - BMW M Edition",
-    quantity: 2,
-    income: 2900,
-    status: "Entregado",
-    courier: "Shalom",
+    total: 1450,
+    paymentStatus: "Pagado",
+    shippingStatus: "Pendiente",
   },
   {
-    id: "VTA-9041",
-    date: "22 Jul 2026",
-    productName: "iPhone 15 Pro Max",
-    quantity: 1,
-    income: 1299,
-    status: "Enviado",
-    courier: "Shalom",
+    id: "ORD-928371",
+    customer: "María López",
+    date: "18 Jul 2026",
+    total: 1299,
+    paymentStatus: "Pendiente",
+    shippingStatus: "Pendiente",
   },
   {
-    id: "VTA-9102",
-    date: "25 Jul 2026",
-    productName: "Galaxy S24 Ultra - BMW M Edition",
-    quantity: 1,
-    income: 1450,
-    status: "Pagado",
+    id: "ORD-102938",
+    customer: "Carlos Ruiz",
+    date: "19 Jul 2026",
+    total: 2900,
+    paymentStatus: "Rechazado",
+    shippingStatus: "Pendiente",
+  },
+  {
+    id: "ORD-564738",
+    customer: "Ana Gómez",
+    date: "20 Jul 2026",
+    total: 999,
+    paymentStatus: "Pagado",
+    shippingStatus: "Despachado",
   },
 ];
 
@@ -113,12 +125,15 @@ export const ProviderDashboard = () => {
       ? INITIAL_PRODUCTS
       : INITIAL_PRODUCTS.filter((p) => p.proveedor === currentUserCompany);
 
+  // Estados
   const [products, setProducts] = useState<Product[]>(displayedProducts);
+  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  // --- MANEJADORES DEL INVENTARIO (ORIGINAL) ---
+  // --- MANEJADORES DEL INVENTARIO ---
   const handleOpenCreate = () => {
     setSelectedProduct(null);
     setIsProductModalOpen(true);
@@ -135,7 +150,6 @@ export const ProviderDashboard = () => {
   };
 
   const handleSaveProduct = (data: Product) => {
-    // Inyectamos el proveedor automáticamente si es una creación
     const productData = { ...data, proveedor: currentUserCompany };
     if (selectedProduct) {
       setProducts(
@@ -159,24 +173,45 @@ export const ProviderDashboard = () => {
     }
   };
 
-  // --- HELPERS PARA VENTAS ---
-  const getSalesStatusColor = (status: SalesStatus) => {
+  // --- MANEJADORES DE PEDIDOS LOGÍSTICOS ---
+  const getPaymentStatusColor = (status: PaymentStatus) => {
     switch (status) {
-      case "Entregado":
-        return "success";
-      case "Enviado":
-        return "warning";
       case "Pagado":
-        return "primary";
+        return "success";
+      case "Pendiente":
+        return "warning";
+      case "Rechazado":
+        return "danger";
       default:
         return "default";
     }
   };
 
+  const getShippingStatusColor = (status: ShippingStatus) => {
+    switch (status) {
+      case "Entregado":
+        return "success";
+      case "Despachado":
+        return "primary";
+      case "Preparando":
+        return "secondary";
+      default:
+        return "default";
+    }
+  };
+
+  const handleUpdateShipping = (orderId: string, newStatus: ShippingStatus) => {
+    setOrders((prev) =>
+      prev.map((order) =>
+        order.id === orderId ? { ...order, shippingStatus: newStatus } : order,
+      ),
+    );
+  };
+
   return (
     <div className="flex flex-col gap-8 w-full max-w-7xl mx-auto min-h-screen pb-12">
       {/* CABECERA PRINCIPAL DINÁMICA */}
-      <div className="pt-4">
+      <div className="pt-4 px-4 lg:px-0">
         <h1 className="text-3xl font-semibold text-foreground tracking-tight">
           {userRole === "ADMIN"
             ? "Panel de Administración"
@@ -185,7 +220,7 @@ export const ProviderDashboard = () => {
         <p className="text-default-500 font-light mt-2 tracking-wide text-lg">
           {userRole === "ADMIN"
             ? "Supervisa todas las operaciones, inventarios y ventas del sistema."
-            : "Gestiona tu inventario y monitorea el rendimiento de tus ventas en tiempo real."}
+            : "Gestiona tu inventario y monitorea el rendimiento logístico en tiempo real."}
         </p>
       </div>
 
@@ -196,7 +231,7 @@ export const ProviderDashboard = () => {
         color="default"
         classNames={{
           tabList:
-            "gap-6 w-full relative rounded-none p-0 border-b border-divider",
+            "gap-6 w-full relative rounded-none px-4 lg:px-0 border-b border-divider",
           cursor: "w-full bg-foreground",
           tab: "max-w-fit px-0 h-12",
           tabContent:
@@ -215,8 +250,7 @@ export const ProviderDashboard = () => {
             </div>
           }
         >
-          <div className="flex flex-col gap-8 pt-6">
-            {/* CÓDIGO JSX ORIGINAL INTACTO */}
+          <div className="flex flex-col gap-8 pt-6 px-4 lg:px-0">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-content1 p-8 rounded-2xl border border-divider gap-4">
               <div>
                 <h2 className="text-2xl lg:text-3xl font-semibold text-foreground tracking-tight">
@@ -229,7 +263,6 @@ export const ProviderDashboard = () => {
                 </p>
               </div>
 
-              {/* Renderizado Condicional del Botón */}
               {userRole === "PROVEEDOR" && (
                 <Button
                   onPress={handleOpenCreate}
@@ -242,8 +275,7 @@ export const ProviderDashboard = () => {
               )}
             </div>
 
-            <div className="bg-content1 rounded-2xl border border-divider overflow-hidden">
-              {/* Pasamos el rol a la tabla */}
+            <div className="bg-content1 rounded-2xl border border-divider overflow-x-auto">
               <ProviderInventoryTable
                 products={products}
                 role={userRole}
@@ -255,21 +287,21 @@ export const ProviderDashboard = () => {
         </Tab>
 
         {/* ==========================================
-            PESTAÑA 2: REGISTRO DE VENTAS
+            PESTAÑA 2: CONTROL DE PEDIDOS (NUEVA)
             ========================================== */}
         <Tab
-          key="ventas"
+          key="pedidos"
           title={
             <div className="flex items-center gap-2">
-              <TrendingUp size={18} strokeWidth={2} />
-              <span>Registro de Ventas</span>
+              <Truck size={18} strokeWidth={2} />
+              <span>Control de Pedidos</span>
             </div>
           }
         >
-          <div className="pt-6">
+          <div className="pt-6 px-4 lg:px-0">
             <div className="bg-content1 rounded-2xl border border-divider overflow-hidden shadow-sm">
               <Table
-                aria-label="Registro de Ventas del Proveedor"
+                aria-label="Control de Pedidos Logísticos"
                 removeWrapper
                 classNames={{
                   th: "bg-default-100 text-default-500 font-semibold tracking-wider text-xs px-8 py-4 border-b border-divider uppercase",
@@ -277,53 +309,95 @@ export const ProviderDashboard = () => {
                 }}
               >
                 <TableHeader>
-                  <TableColumn>Nº Orden</TableColumn>
+                  <TableColumn>ID Pedido</TableColumn>
+                  <TableColumn>Cliente</TableColumn>
                   <TableColumn>Fecha</TableColumn>
-                  <TableColumn>Producto Vendido</TableColumn>
-                  <TableColumn>Cant.</TableColumn>
-                  <TableColumn>Ingreso</TableColumn>
+                  <TableColumn>Total</TableColumn>
+                  <TableColumn>Estado de Pago (PayU)</TableColumn>
                   <TableColumn>Estado de Envío</TableColumn>
+                  <TableColumn align="center">Acciones</TableColumn>
                 </TableHeader>
-                <TableBody items={MOCK_SALES}>
-                  {(sale) => (
+                <TableBody items={orders}>
+                  {(order) => (
                     <TableRow
-                      key={sale.id}
+                      key={order.id}
                       className="hover:bg-default-50 transition-colors"
                     >
                       <TableCell className="font-medium text-foreground tracking-tight">
-                        {sale.id}
+                        {order.id}
+                      </TableCell>
+                      <TableCell className="text-default-500 font-medium">
+                        {order.customer}
                       </TableCell>
                       <TableCell className="text-default-500 font-light">
-                        {sale.date}
+                        {order.date}
                       </TableCell>
-                      <TableCell className="text-default-500 font-light">
-                        {sale.productName}
-                      </TableCell>
-                      <TableCell className="text-foreground font-medium">
-                        {sale.quantity}
-                      </TableCell>
-                      <TableCell className="font-bold text-success tracking-tight">
+                      <TableCell className="font-bold text-foreground tracking-tight">
                         $
-                        {sale.income.toLocaleString("en-US", {
+                        {order.total.toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                         })}
                       </TableCell>
+
+                      {/* Estado de Pago PayU */}
                       <TableCell>
-                        <div className="flex flex-col gap-1 items-start">
-                          <Chip
-                            color={getSalesStatusColor(sale.status)}
-                            variant="flat"
-                            size="sm"
-                            className="font-medium tracking-wide"
+                        <Chip
+                          color={getPaymentStatusColor(order.paymentStatus)}
+                          variant="flat"
+                          size="sm"
+                          className="font-medium tracking-wide"
+                        >
+                          {order.paymentStatus}
+                        </Chip>
+                      </TableCell>
+
+                      {/* Estado de Envío Logístico */}
+                      <TableCell>
+                        <Chip
+                          color={getShippingStatusColor(order.shippingStatus)}
+                          variant="dot"
+                          size="sm"
+                          className="font-medium tracking-wide border-none bg-transparent px-0"
+                        >
+                          {order.shippingStatus}
+                        </Chip>
+                      </TableCell>
+
+                      {/* Acciones */}
+                      <TableCell>
+                        <Dropdown placement="bottom-end">
+                          <DropdownTrigger>
+                            <Button
+                              variant="flat"
+                              color="default"
+                              size="sm"
+                              isDisabled={order.paymentStatus !== "Pagado"}
+                              endContent={<ChevronDown size={14} />}
+                              className="font-medium"
+                            >
+                              Actualizar
+                            </Button>
+                          </DropdownTrigger>
+                          <DropdownMenu
+                            aria-label="Acciones logísticas"
+                            onAction={(key) =>
+                              handleUpdateShipping(
+                                order.id,
+                                key as ShippingStatus,
+                              )
+                            }
                           >
-                            {sale.status}
-                          </Chip>
-                          {sale.courier && (
-                            <span className="text-[10px] text-default-400 font-medium uppercase tracking-wider mt-1">
-                              Logística: {sale.courier}
-                            </span>
-                          )}
-                        </div>
+                            <DropdownItem key="Preparando">
+                              Preparando
+                            </DropdownItem>
+                            <DropdownItem key="Despachado">
+                              Despachado
+                            </DropdownItem>
+                            <DropdownItem key="Entregado">
+                              Entregado
+                            </DropdownItem>
+                          </DropdownMenu>
+                        </Dropdown>
                       </TableCell>
                     </TableRow>
                   )}
@@ -334,7 +408,7 @@ export const ProviderDashboard = () => {
         </Tab>
       </Tabs>
 
-      {/* MODALES DEL INVENTARIO ORIGINAL */}
+      {/* MODALES DEL INVENTARIO */}
       <ProviderProductModal
         isOpen={isProductModalOpen}
         onClose={() => setIsProductModalOpen(false)}

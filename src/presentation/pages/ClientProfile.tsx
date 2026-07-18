@@ -29,6 +29,10 @@ import {
   Eye,
   Package,
   Shield,
+  MapPin,
+  Truck,
+  CheckCircle,
+  ClipboardList,
 } from "lucide-react";
 import type { FormaPago } from "../../domain/models/appCelulares.model";
 import { CreditCardDisplay } from "../components/CreditCardDisplay";
@@ -57,7 +61,7 @@ const MOCK_CARDS: FormaPago[] = [
 // ==========================================
 // MOCK DATA: Historial de Pedidos
 // ==========================================
-type OrderStatus = "Entregado" | "En Camino" | "Procesando";
+type OrderStatus = "Procesando" | "Preparando" | "En Camino" | "Entregado";
 
 interface Order {
   id: string;
@@ -87,6 +91,13 @@ const MOCK_ORDERS: Order[] = [
   },
 ];
 
+const TRACKING_STEPS = [
+  { label: "Procesando", icon: ClipboardList },
+  { label: "Preparando", icon: Package },
+  { label: "En Camino", icon: Truck },
+  { label: "Entregado", icon: CheckCircle },
+];
+
 export const ClientProfile = () => {
   // 1. Consumo del Store de Autenticación
   const { user } = useAuthStore();
@@ -94,6 +105,10 @@ export const ClientProfile = () => {
   const [cards, setCards] = useState<FormaPago[]>(MOCK_CARDS);
   const [isAddCardOpen, setIsAddCardOpen] = useState(false);
   const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
+
+  // Nuevos estados para el modal de rastreo logístico
+  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Estados locales para la tarjeta interactiva
   const [cardNumber, setCardNumber] = useState("");
@@ -110,6 +125,11 @@ export const ClientProfile = () => {
     alert("Cuenta eliminada exitosamente. Redirigiendo al inicio...");
     setIsDeleteAccountOpen(false);
     // Aquí va la lógica real de logout y redirección
+  };
+
+  const handleOpenTracking = (order: Order) => {
+    setSelectedOrder(order);
+    setIsTrackingOpen(true);
   };
 
   // --- MANEJADORES DE INPUT CON MÁSCARAS NATIVAS ---
@@ -138,17 +158,34 @@ export const ClientProfile = () => {
     setCvv(value);
   };
 
-  // Helper para asignar colores a los estados de la orden
+  // Helpers de UI para las órdenes
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
       case "Entregado":
         return "success";
       case "En Camino":
         return "warning";
+      case "Preparando":
+        return "secondary";
       case "Procesando":
         return "default";
       default:
         return "default";
+    }
+  };
+
+  const getOrderStepIndex = (status: OrderStatus) => {
+    switch (status) {
+      case "Procesando":
+        return 0;
+      case "Preparando":
+        return 1;
+      case "En Camino":
+        return 2;
+      case "Entregado":
+        return 3;
+      default:
+        return 0;
     }
   };
 
@@ -190,7 +227,7 @@ export const ClientProfile = () => {
         >
           <div className="pt-6">
             <Card className="bg-content1 shadow-none border border-divider rounded-2xl overflow-hidden">
-              <CardBody className="p-0">
+              <CardBody className="p-0 overflow-x-auto">
                 <Table
                   aria-label="Historial de pedidos del cliente"
                   removeWrapper
@@ -235,7 +272,19 @@ export const ClientProfile = () => {
                           </Chip>
                         </TableCell>
                         <TableCell>
-                          <div className="flex justify-center">
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              variant="light"
+                              color="default"
+                              size="sm"
+                              className="font-medium text-default-500 hover:text-foreground hover:bg-default-100 transition-colors"
+                              startContent={
+                                <MapPin size={16} strokeWidth={1.5} />
+                              }
+                              onPress={() => handleOpenTracking(order)}
+                            >
+                              Rastrear
+                            </Button>
                             <Button
                               as={Link}
                               to={`/factura/${order.id}`}
@@ -355,6 +404,77 @@ export const ClientProfile = () => {
           </div>
         </Tab>
       </Tabs>
+
+      {/* MODAL: RASTREO LOGÍSTICO (STEPPER) */}
+      <Modal
+        isOpen={isTrackingOpen}
+        onOpenChange={setIsTrackingOpen}
+        classNames={{
+          base: "bg-content1",
+          header: "border-b border-divider",
+          footer: "border-t border-divider",
+        }}
+      >
+        <ModalContent>
+          <ModalHeader className="font-semibold text-foreground flex items-center gap-2 tracking-tight">
+            <MapPin size={20} strokeWidth={1.5} /> Rastreo de Pedido{" "}
+            {selectedOrder?.id}
+          </ModalHeader>
+          <ModalBody className="py-8 px-6">
+            <div className="relative flex flex-col gap-8 ml-4">
+              {/* Línea vertical de conexión */}
+              <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-default-200 z-0" />
+
+              {TRACKING_STEPS.map((step, idx) => {
+                const currentStepIndex = selectedOrder
+                  ? getOrderStepIndex(selectedOrder.status)
+                  : 0;
+                const isActive = idx <= currentStepIndex;
+                const isCurrent = idx === currentStepIndex;
+                const Icon = step.icon;
+
+                return (
+                  <div
+                    key={step.label}
+                    className="relative z-10 flex items-center gap-5"
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${
+                        isActive
+                          ? "bg-success border-success text-white shadow-sm"
+                          : "bg-content1 border-default-300 text-default-300"
+                      }`}
+                    >
+                      <Icon size={18} strokeWidth={isActive ? 2 : 1.5} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span
+                        className={`text-base font-medium ${isActive ? "text-foreground" : "text-default-400"}`}
+                      >
+                        {step.label}
+                      </span>
+                      {isCurrent && (
+                        <span className="text-xs text-success font-medium tracking-wide mt-0.5">
+                          Estado actual
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              color="default"
+              className="font-medium bg-foreground text-background shadow-none w-full sm:w-auto"
+              onPress={() => setIsTrackingOpen(false)}
+            >
+              Cerrar Rastreador
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       {/* MODAL: AGREGAR TARJETA */}
       <Modal

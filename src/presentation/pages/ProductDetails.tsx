@@ -1,6 +1,6 @@
 // src/presentation/pages/ProductDetails.tsx
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
 import { Image } from "@heroui/image";
@@ -18,35 +18,100 @@ import { ReviewsModal } from "../components/reviews/ReviewsModal";
 import { useCartStore } from "../../application/store/useCartStore";
 import { useAuthStore } from "../../application/store/useAuthStore";
 
-const MOCK_PRODUCT = {
-  id: "cel-001",
-  marca: "Samsung",
-  modelo: "Galaxy S24 Ultra - BMW M Edition",
-  precioActual: 1450,
-  precioAnterior: 1600,
-  imagenes: [
-    "https://images.samsung.com/is/image/samsung/assets/pe/s2602/pcd/smartphones/PCD_Galaxy-S-KV_S26-Series_MO_720x1080.jpg?$720_1080_JPG$",
-    "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?q=80&w=800&auto=format&fit=crop",
-    "https://images.samsung.com/is/image/samsung/p6pim/pe/sm-a075mzkeltp/gallery/pe-galaxy-a07-sm-a075-sm-a075mzkeltp-thumb-549150429",
-    "https://images.unsplash.com/photo-1605236453806-6ff36851218e?q=80&w=800&auto=format&fit=crop",
-  ],
-  descripcion:
-    "La máxima expresión de tecnología y diseño. El Galaxy S24 Ultra edición exclusiva cuenta con un acabado premium inspirado en la ingeniería automotriz de alto rendimiento, marcos de titanio y el poderoso S Pen integrado.",
-  especificaciones: [
-    { caracteristica: "Procesador", valor: "Snapdragon 8 Gen 3 for Galaxy" },
-    { caracteristica: "RAM", valor: "12 GB LPDDR5X" },
-    { caracteristica: "Almacenamiento", valor: "512 GB UFS 4.0" },
-    { caracteristica: "Batería", valor: "5000 mAh (Carga Rápida 45W)" },
-    {
-      caracteristica: "Pantalla",
-      valor: '6.8" QHD+ Dynamic AMOLED 2X (120Hz)',
-    },
-  ],
-};
+const MOCK_PRODUCTS = [
+  {
+    id: "cel-001",
+    marca: "Samsung",
+    modelo: "Galaxy S24 Ultra - BMW M Edition",
+    precioActual: 1450,
+    precioAnterior: 1600,
+    stock: 15,
+    imagenes: [
+      "https://images.samsung.com/is/image/samsung/assets/pe/s2602/pcd/smartphones/PCD_Galaxy-S-KV_S26-Series_MO_720x1080.jpg?$720_1080_JPG$",
+      "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?q=80&w=800&auto=format&fit=crop",
+      "https://images.samsung.com/is/image/samsung/p6pim/pe/sm-a075mzkeltp/gallery/pe-galaxy-a07-sm-a075-sm-a075mzkeltp-thumb-549150429",
+      "https://images.unsplash.com/photo-1605236453806-6ff36851218e?q=80&w=800&auto=format&fit=crop",
+    ],
+    descripcion:
+      "La máxima expresión de tecnología y diseño. El Galaxy S24 Ultra edición exclusiva cuenta con un acabado premium inspirado en la ingeniería automotriz de alto rendimiento, marcos de titanio y el poderoso S Pen integrado.",
+    especificaciones: [
+      { caracteristica: "Procesador", valor: "Snapdragon 8 Gen 3 for Galaxy" },
+      { caracteristica: "RAM", valor: "12 GB LPDDR5X" },
+      { caracteristica: "Almacenamiento", valor: "512 GB UFS 4.0" },
+      { caracteristica: "Batería", valor: "5000 mAh (Carga Rápida 45W)" },
+      {
+        caracteristica: "Pantalla",
+        valor: '6.8" QHD+ Dynamic AMOLED 2X (120Hz)',
+      },
+    ],
+  },
+  {
+    id: "cel-002",
+    marca: "Apple",
+    modelo: "iPhone 15 Pro Max",
+    precioActual: 1299.99,
+    precioAnterior: 1499.0,
+    stock: 2,
+    imagenes: [
+      "https://images.unsplash.com/photo-1696446701796-da61225697cc?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=800&auto=format&fit=crop",
+    ],
+    descripcion:
+      "Diseñado en titanio aeroespacial. El iPhone 15 Pro Max incluye el revolucionario chip A17 Pro, un botón de acción personalizable y el sistema de cámaras más potente en un iPhone hasta ahora con zoom óptico de 5x.",
+    especificaciones: [
+      { caracteristica: "Procesador", valor: "Chip A17 Pro" },
+      { caracteristica: "RAM", valor: "8 GB" },
+      { caracteristica: "Almacenamiento", valor: "256 GB NVMe" },
+      { caracteristica: "Batería", valor: "4422 mAh (MagSafe 15W)" },
+      {
+        caracteristica: "Pantalla",
+        valor: '6.7" Super Retina XDR OLED (120Hz)',
+      },
+    ],
+  },
+  {
+    id: "cel-003",
+    marca: "Google",
+    modelo: "Pixel 8 Pro",
+    precioActual: 999.0,
+    precioAnterior: 1150.0,
+    stock: 0,
+    imagenes: [
+      "https://images.unsplash.com/photo-1696446700622-48df1ab53744?q=80&w=800&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1598327105666-5b89351cb31b?q=80&w=800&auto=format&fit=crop",
+    ],
+    descripcion:
+      "El poder de la IA de Google en tus manos. Con el Pixel 8 Pro tendrás fotos y videos impresionantes, un diseño elegante en colores mate y la experiencia de Android más pura, fluida y con 7 años de actualizaciones.",
+    especificaciones: [
+      { caracteristica: "Procesador", valor: "Google Tensor G3" },
+      { caracteristica: "RAM", valor: "12 GB LPDDR5X" },
+      { caracteristica: "Almacenamiento", valor: "128 GB UFS 3.1" },
+      { caracteristica: "Batería", valor: "5050 mAh (Carga Inalámbrica)" },
+      {
+        caracteristica: "Pantalla",
+        valor: '6.7" LTPO OLED (120Hz HDR10+)',
+      },
+    ],
+  },
+];
 
 export const ProductDetails = () => {
   const navigate = useNavigate();
-  const [selectedImage, setSelectedImage] = useState(MOCK_PRODUCT.imagenes[0]);
+  const { id } = useParams<{ id: string }>();
+
+  // Buscar el producto dinámicamente
+  const product = MOCK_PRODUCTS.find((p) => p.id === id);
+
+  const [selectedImage, setSelectedImage] = useState(
+    product?.imagenes[0] || "",
+  );
+
+  // Actualizar la imagen seleccionada cuando cambia la ruta o el producto
+  useEffect(() => {
+    if (product) {
+      setSelectedImage(product.imagenes[0]);
+    }
+  }, [product]);
 
   // Estado para el Modal de Reseñas
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
@@ -61,15 +126,36 @@ export const ProductDetails = () => {
   // Extrae la función del store
   const { addToCart } = useCartStore();
 
+  if (!product) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-5 px-4 font-sans">
+        <h2 className="text-3xl font-bold text-foreground tracking-tight">
+          Producto no encontrado
+        </h2>
+        <p className="text-default-500 font-light tracking-wide text-center">
+          El equipo que buscas no existe o ha sido retirado del catálogo.
+        </p>
+        <Button
+          color="default"
+          size="lg"
+          className="mt-2 font-medium bg-foreground text-background hover:opacity-80 transition-colors shadow-none"
+          onPress={() => navigate("/")}
+        >
+          Volver al Catálogo
+        </Button>
+      </div>
+    );
+  }
+
   const handleAddToCart = () => {
     // Inyección de la lógica de Zustand mapeando el producto actual
     addToCart(
       {
-        id: MOCK_PRODUCT.id,
-        nombre: MOCK_PRODUCT.modelo,
-        precio: MOCK_PRODUCT.precioActual,
-        imagen: MOCK_PRODUCT.imagenes[0],
-        marca: MOCK_PRODUCT.marca,
+        id: product.id,
+        nombre: product.modelo,
+        precio: product.precioActual,
+        imagen: product.imagenes[0],
+        marca: product.marca,
       },
       1, // Cantidad por defecto a agregar
     );
@@ -101,6 +187,18 @@ export const ProductDetails = () => {
         );
 
       case "CLIENTE":
+        if (product.stock === 0) {
+          return (
+            <Button
+              isDisabled
+              color="default"
+              size="lg"
+              className="w-full h-16 text-lg font-medium bg-default-100 text-default-400 transition-colors shadow-none mt-6"
+            >
+              Producto Agotado
+            </Button>
+          );
+        }
         return (
           <Button
             onPress={handleAddToCart}
@@ -153,7 +251,7 @@ export const ProductDetails = () => {
             <div className="w-full bg-default-50 rounded-xl border border-divider overflow-hidden flex justify-center items-center p-8">
               <Image
                 src={selectedImage}
-                alt={MOCK_PRODUCT.modelo}
+                alt={product.modelo}
                 className="object-contain w-full h-[500px]"
                 radius="none"
                 loading="lazy"
@@ -161,7 +259,7 @@ export const ProductDetails = () => {
             </div>
 
             <div className="flex gap-4 overflow-x-auto py-2 px-1">
-              {MOCK_PRODUCT.imagenes.map((img, index) => (
+              {product.imagenes.map((img, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(img)}
@@ -186,20 +284,62 @@ export const ProductDetails = () => {
           <div className="flex flex-col gap-6 pt-4">
             <div>
               <p className="text-xs font-semibold text-default-400 uppercase tracking-widest mb-3">
-                {MOCK_PRODUCT.marca}
+                {product.marca}
               </p>
               <h1 className="text-3xl lg:text-4xl font-extrabold text-foreground leading-tight tracking-tight">
-                {MOCK_PRODUCT.modelo}
+                {product.modelo}
               </h1>
             </div>
 
-            <div className="flex items-end gap-4 mt-2">
-              <span className="text-4xl font-light text-foreground tracking-tight">
-                ${MOCK_PRODUCT.precioActual.toLocaleString()}
-              </span>
-              <span className="text-xl font-light text-default-400 line-through mb-1">
-                ${MOCK_PRODUCT.precioAnterior.toLocaleString()}
-              </span>
+            <div className="flex flex-col gap-2 mt-2">
+              <div className="flex items-end gap-4">
+                <span className="text-4xl font-light text-foreground tracking-tight">
+                  $
+                  {product.precioActual.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+                <span className="text-xl font-light text-default-400 line-through mb-1">
+                  $
+                  {product.precioAnterior.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </span>
+              </div>
+
+              {/* BADGES DE STOCK */}
+              <div className="flex items-center mt-1">
+                {product.stock === 0 ? (
+                  <Chip
+                    color="danger"
+                    variant="flat"
+                    size="sm"
+                    className="font-medium"
+                  >
+                    Agotado
+                  </Chip>
+                ) : product.stock <= 3 ? (
+                  <Chip
+                    color="warning"
+                    variant="flat"
+                    size="sm"
+                    className="font-medium"
+                  >
+                    ¡Últimas {product.stock} unidades!
+                  </Chip>
+                ) : (
+                  <Chip
+                    color="success"
+                    variant="flat"
+                    size="sm"
+                    className="font-medium"
+                  >
+                    Stock disponible
+                  </Chip>
+                )}
+              </div>
             </div>
 
             {/* BOTÓN DE RESEÑAS INTEGRADO */}
@@ -250,7 +390,7 @@ export const ProductDetails = () => {
             </div>
 
             <p className="text-default-500 font-light leading-relaxed tracking-wide">
-              {MOCK_PRODUCT.descripcion}
+              {product.descripcion}
             </p>
 
             {/* Acción Condicional */}
@@ -293,7 +433,7 @@ export const ProductDetails = () => {
           <div className="bg-content1 rounded-xl border border-divider overflow-hidden shadow-sm">
             <table className="w-full text-left border-collapse">
               <tbody>
-                {MOCK_PRODUCT.especificaciones.map((spec, index) => (
+                {product.especificaciones.map((spec, index) => (
                   <tr
                     key={index}
                     className="border-b border-divider last:border-0 even:bg-default-50 hover:bg-default-100 transition-colors"
@@ -316,7 +456,7 @@ export const ProductDetails = () => {
       <ReviewsModal
         isOpen={isReviewsOpen}
         onClose={() => setIsReviewsOpen(false)}
-        productId={MOCK_PRODUCT.id}
+        productId={product.id}
       />
     </>
   );
