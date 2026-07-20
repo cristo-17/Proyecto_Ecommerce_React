@@ -7,33 +7,8 @@ import { z } from "zod";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
 import { useAuthStore } from "../../application/store/useAuthStore";
+import { authService } from "../../infrastructure/services/authService";
 
-// 1. Mock Data (Alineado con el diccionario de roles: ADMIN, PROVEEDOR, CLIENTE)
-const MOCK_USERS = [
-  {
-    id: "usr-001",
-    email: "admin@test.com",
-    password: "password123",
-    rol: "ADMIN",
-    nombre: "Administrador Principal",
-  },
-  {
-    id: "usr-002",
-    email: "proveedor@test.com",
-    password: "password123",
-    rol: "PROVEEDOR",
-    nombre: "Samsung Global",
-  },
-  {
-    id: "usr-003",
-    email: "cliente@test.com",
-    password: "password123",
-    rol: "CLIENTE",
-    nombre: "Cliente Frecuente",
-  },
-];
-
-// 2. Esquema de Validación Estricto (Zod)
 const loginSchema = z.object({
   email: z
     .string()
@@ -47,8 +22,6 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export const Login = () => {
   const navigate = useNavigate();
   const [authError, setAuthError] = useState<string | null>(null);
-
-  // 1. Consumo del Store de Zustand
   const { login } = useAuthStore();
 
   const {
@@ -62,33 +35,14 @@ export const Login = () => {
 
   const onSubmit = async (data: LoginFormData) => {
     setAuthError(null);
-
     try {
-      // Delay simulado para efecto de carga
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const { token, user } = await authService.login(
+        data.email,
+        data.password,
+      );
+      login(user, token);
 
-      // 2. Lógica de Roles Inteligente para simulación
-      const emailLower = data.email.toLowerCase();
-      let assignedRole: "ADMIN" | "PROVEEDOR" | "CLIENTE" = "CLIENTE";
-
-      if (emailLower.includes("admin")) {
-        assignedRole = "ADMIN";
-      } else if (emailLower.includes("proveedor")) {
-        assignedRole = "PROVEEDOR";
-      }
-
-      const mockUser = {
-        id: `usr-${Date.now()}`,
-        email: data.email,
-        nombre: `Usuario ${assignedRole}`,
-        rol: assignedRole,
-      };
-
-      // Inyectamos los datos al estado global de Zustand
-      login(mockUser, "fake-jwt-token-12345");
-
-      // 3. Redirección Basada en Rol
-      switch (assignedRole) {
+      switch (user.rol) {
         case "ADMIN":
           navigate("/dashboard");
           break;
@@ -100,8 +54,8 @@ export const Login = () => {
           navigate("/");
           break;
       }
-    } catch {
-      setAuthError("Ocurrió un error inesperado. Inténtalo nuevamente.");
+    } catch (error: any) {
+      setAuthError(error.response?.data?.message || "Credenciales inválidas");
     }
   };
 

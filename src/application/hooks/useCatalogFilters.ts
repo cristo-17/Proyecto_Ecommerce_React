@@ -1,120 +1,127 @@
-// src/application/hooks/useCatalogFilters.ts
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-
-// Movimos la interfaz y el Mock Data aquí para que la capa de aplicación sea
-// la dueña de la gestión de los datos (simulando una llamada a un servicio/API).
-export interface CelularMock {
-  id: string;
-  marca: string;
-  modelo: string;
-  precio: number;
-  imagenUrl: string;
-}
-
-const MOCK_PRODUCTS: CelularMock[] = [
-  {
-    id: "cel-001",
-    marca: "Samsung",
-    modelo: "Galaxy S24 Ultra - BMW M Edition",
-    precio: 1450.0,
-    imagenUrl:
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6idTnBxqn8EtuoOsQ4xT8eviWVTdS9EVix0WzyMavj0EbgA_yRw15nxc&s=10",
-  },
-  {
-    id: "cel-002",
-    marca: "Apple",
-    modelo: "iPhone 15 Pro Max",
-    precio: 1299.99,
-    imagenUrl:
-      "https://http2.mlstatic.com/D_Q_NP_801419-MLA93327187554_092025-O.webp",
-  },
-  {
-    id: "cel-003",
-    marca: "Google",
-    modelo: "Pixel 8 Pro",
-    precio: 999.0,
-    imagenUrl:
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQWYgGhIm2DEw1NUtWAXF0G91N4MrZ3XCu0s-lG0EXuOKppq3_4RAQnQj4&s=10",
-  },
-  {
-    id: "cel-004",
-    marca: "Xiaomi",
-    modelo: "14 Ultra",
-    precio: 1199.5,
-    imagenUrl:
-      "https://http2.mlstatic.com/D_NQ_NP_788031-MLU77409006804_072024-O.webp",
-  },
-];
+import { productService } from "../../infrastructure/services/productService";
+import type { Product } from "../../domain/models/appCelulares.model";
 
 export const useCatalogFilters = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialQuery = searchParams.get("q") || "";
 
-  // Estados locales gestionados por el Hook
-  const [searchTerm, setSearchTerm] = useState(initialQuery);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<number[]>([0, 2000]);
+  // 1. ESTADOS DE LA URL (Lo que lee el backend)
+  const q = searchParams.get("q") || "";
+  const marca = searchParams.get("marca")?.split(",") || [];
+  const precioMin = searchParams.get("precioMin")
+    ? Number(searchParams.get("precioMin"))
+    : undefined;
+  const precioMax = searchParams.get("precioMax")
+    ? Number(searchParams.get("precioMax"))
+    : undefined;
 
-  // Sincronización bidireccional si el usuario busca desde el Navbar
+  // 2. NUEVO: ESTADOS LOCALES (Lo que ve el usuario instantáneamente)
+  const [localSearch, setLocalSearch] = useState(q);
+  const [localPriceRange, setLocalPriceRange] = useState<number[]>([
+    precioMin || 0,
+    precioMax || 2000,
+  ]);
+
+  // Estados de carga y datos
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [totalPages, setTotalPages] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+
+  // 3. NUEVO: Lógica de Debounce (Espera 500ms tras dejar de escribir/deslizar)
   useEffect(() => {
-    const query = searchParams.get("q") || "";
-    setSearchTerm(query);
-  }, [searchParams]);
+    const handler = setTimeout(() => {
+      if (localSearch !== q) {
+        setSearchParams((prev) => {
+          if (localSearch) prev.set("q", localSearch);
+          else prev.delete("q");
+          return prev;
+        });
+        setCurrentPage(0);
+      }
+    }, 500); // 500ms de retraso
 
-  // Actualizador de búsqueda que también limpia los params de la URL
-  const handleSearchTermChange = (value: string) => {
-    setSearchTerm(value);
-    setSearchParams(
-      (prev) => {
-        if (value) prev.set("q", value);
-        else prev.delete("q");
-        return prev;
-      },
-      { replace: true }
-    );
-  };
+    return () => clearTimeout(handler);
+  }, [localSearch, q, setSearchParams]);
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (
+        localPriceRange[0] !== (precioMin || 0) ||
+        localPriceRange[1] !== (precioMax || 2000)
+      ) {
+        setSearchParams((prev) => {
+          prev.set("precioMin", String(localPriceRange[0]));
+          prev.set("precioMax", String(localPriceRange[1]));
+          return prev;
+        });
+        setCurrentPage(0);
+      }
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [localPriceRange, precioMin, precioMax, setSearchParams]);
+
+  // Consumo del backend (se mantiene intacto)
+  const fetchProducts = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const filters = {
+        q: q || undefined,
+        marca: marca.length ? marca : undefined,
+        precioMin,
+        precioMax,
+        page: currentPage,
+        size: 20,
+      };
+      const response = await productService.getCatalog(filters);
+      setProducts(response.content || []);
+      setTotalPages(response.totalPages || 0);
+    } catch (err: any) {
+      setError(err.message || "Error al cargar productos");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [q, marca.join(","), precioMin, precioMax, currentPage]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // Toggle de marca (es un click, así que va directo a la URL)
   const toggleBrand = (brand: string) => {
-    setSelectedBrands((prev) =>
-      prev.includes(brand)
-        ? prev.filter((b) => b !== brand)
-        : [...prev, brand]
-    );
-  };
-
-  const handlePriceChange = (value: number | number[]) => {
-    setPriceRange(value as number[]);
-  };
-
-  // Motor de filtrado
-  const filteredProducts = useMemo(() => {
-    return MOCK_PRODUCTS.filter((product) => {
-      // 1. Filtro por Búsqueda (Marca o Modelo)[cite: 22]
-      const queryLower = searchTerm.toLowerCase();
-      const matchesSearch =
-        product.marca.toLowerCase().includes(queryLower) ||
-        product.modelo.toLowerCase().includes(queryLower);
-
-      // 2. Filtro por Marca (si no hay ninguna seleccionada, pasan todas)
-      const matchesBrand =
-        selectedBrands.length === 0 || selectedBrands.includes(product.marca);
-
-      // 3. Filtro por Rango de Precios
-      const matchesPrice =
-        product.precio >= priceRange[0] && product.precio <= priceRange[1];
-
-      return matchesSearch && matchesBrand && matchesPrice;
+    setSearchParams((prev) => {
+      const currentMarcas = prev.get("marca")?.split(",") || [];
+      if (currentMarcas.includes(brand)) {
+        const newMarcas = currentMarcas.filter((b) => b !== brand);
+        if (newMarcas.length) prev.set("marca", newMarcas.join(","));
+        else prev.delete("marca");
+      } else {
+        prev.set("marca", [...currentMarcas, brand].join(","));
+      }
+      return prev;
     });
-  }, [searchTerm, selectedBrands, priceRange]);
+    setCurrentPage(0);
+  };
 
   return {
-    searchTerm,
-    setSearchTerm: handleSearchTermChange,
-    selectedBrands,
+    // Retornamos los estados locales para que la UI no se trabe
+    searchTerm: localSearch,
+    setSearchTerm: setLocalSearch,
+    priceRange: localPriceRange,
+    setPriceRange: setLocalPriceRange,
+
+    // Retornamos el resto normalmente
+    selectedBrands: marca,
     toggleBrand,
-    priceRange,
-    setPriceRange: handlePriceChange,
-    filteredProducts,
+    products,
+    isLoading,
+    error,
+    currentPage,
+    totalPages,
+    setCurrentPage,
   };
 };

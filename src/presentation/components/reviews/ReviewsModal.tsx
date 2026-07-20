@@ -1,5 +1,5 @@
 // src/presentation/components/reviews/ReviewsModal.tsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Modal,
@@ -11,6 +11,8 @@ import {
 import { Button } from "@heroui/button";
 import { Star, Pencil, Trash2, AlertCircle } from "lucide-react";
 import type { Resena } from "../../../domain/models/appCelulares.model";
+import { useAuthStore } from "../../../application/store/useAuthStore";
+import { reviewService } from "../../../infrastructure/services/reviewService";
 
 interface ReviewsModalProps {
   isOpen: boolean;
@@ -18,59 +20,73 @@ interface ReviewsModalProps {
   productId: string;
 }
 
-// Mock Data de Reseñas
-const MOCK_REVIEWS: Resena[] = [
-  {
-    id: "rev-1",
-    celularId: "cel-001",
-    autorId: "mock-user-1", // Simulación de usuario activo
-    autorNombre: "Usuario Activo",
-    calificacion: 5,
-    comentario:
-      "Excelente rendimiento. Lo uso para jugar simuladores de camiones durante horas y los gráficos van súper fluidos sin calentarse. El diseño M Edition es brutal.",
-    fecha: new Date("2026-07-01"),
-  },
-  {
-    id: "rev-2",
-    celularId: "cel-001",
-    autorId: "mock-user-2",
-    autorNombre: "Luis M.",
-    calificacion: 5,
-    comentario:
-      "La cámara es increíble y el diseño hermoso. Lo compré para regalárselo a mi novia y quedó totalmente fascinada.",
-    fecha: new Date("2026-07-05"),
-  },
-  {
-    id: "rev-3",
-    celularId: "cel-001",
-    autorId: "mock-user-3",
-    autorNombre: "Carlos G.",
-    calificacion: 4,
-    comentario:
-      "Muy buen equipo, aunque el precio es un poco elevado. La batería dura todo el día sin problemas.",
-    fecha: new Date("2026-07-09"),
-  },
-];
-
 export const ReviewsModal = ({
   isOpen,
   onClose,
   productId,
 }: ReviewsModalProps) => {
-  // Simulación de sesión
-  const userRole = localStorage.getItem("user_role") || "INVITADO";
-  const currentUserId = localStorage.getItem("user_id") || "mock-user-1";
+  const { user } = useAuthStore();
+  const userRole = user?.rol || "INVITADO";
+  const currentUserId = user?.id;
 
-  // Estado para el formulario de nueva reseña
+  const [reviews, setReviews] = useState<Resena[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Estados para el formulario de nueva reseña
   const [nuevaCalificacion, setNuevaCalificacion] = useState(5);
   const [nuevoComentario, setNuevoComentario] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
 
-  // Filtrar reseñas del producto actual (simulado)
-  const productReviews = MOCK_REVIEWS.filter(
-    (r) => r.celularId === productId || productId === "cel-001",
-  );
+  // Cargar reseñas del producto
+  const fetchReviews = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await reviewService.getByProduct(productId);
+      setReviews(data);
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Error al cargar reseñas");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // Renderizador de Estrellas (Estilo Minimalista Premium)
+  useEffect(() => {
+    if (isOpen) {
+      fetchReviews();
+    }
+  }, [isOpen, productId]);
+
+  // Publicar nueva reseña
+  const handlePublish = async () => {
+    setIsPublishing(true);
+    try {
+      await reviewService.create(productId, {
+        calificacion: nuevaCalificacion,
+        comentario: nuevoComentario,
+      });
+      setNuevoComentario("");
+      setNuevaCalificacion(5);
+      await fetchReviews(); // Refrescar lista
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Error al publicar reseña");
+    } finally {
+      setIsPublishing(false);
+    }
+  };
+
+  // Eliminar reseña
+  const handleDelete = async (id: string) => {
+    try {
+      await reviewService.delete(id);
+      await fetchReviews();
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Error al eliminar reseña");
+    }
+  };
+
+  // Renderizador de Estrellas
   const renderStars = (rating: number, interactive = false) => {
     return (
       <div className="flex gap-1">
@@ -90,6 +106,14 @@ export const ReviewsModal = ({
       </div>
     );
   };
+
+  // Calcular promedio
+  const averageRating =
+    reviews.length > 0
+      ? (
+          reviews.reduce((sum, r) => sum + r.calificacion, 0) / reviews.length
+        ).toFixed(1)
+      : "0.0";
 
   return (
     <Modal
@@ -111,8 +135,10 @@ export const ReviewsModal = ({
             Opiniones de los Clientes
           </h2>
           <div className="flex items-center gap-3 text-sm text-zinc-500 font-light">
-            {renderStars(4.8)}
-            <span>4.8 de 5 ({productReviews.length} reseñas)</span>
+            {renderStars(Number(averageRating))}
+            <span>
+              {averageRating} de 5 ({reviews.length} reseñas)
+            </span>
           </div>
         </ModalHeader>
 
@@ -161,6 +187,8 @@ export const ReviewsModal = ({
               <div className="flex justify-end mt-1">
                 <Button
                   color="default"
+                  onPress={handlePublish}
+                  isLoading={isPublishing}
                   className="font-medium bg-zinc-900 text-white shadow-none hover:bg-zinc-800 transition-colors px-8"
                 >
                   Publicar Opinión
@@ -169,10 +197,15 @@ export const ReviewsModal = ({
             </div>
           ) : null}
 
-          {/* Admin y Proveedor no pueden dejar reseñas como clientes */}
+          {/* Loading / Error */}
+          {isLoading && (
+            <p className="text-center text-default-500">Cargando reseñas...</p>
+          )}
+          {error && <p className="text-center text-danger">{error}</p>}
+
           {/* Lista de Reseñas */}
           <div className="flex flex-col">
-            {productReviews.map((resena) => (
+            {reviews.map((resena) => (
               <div
                 key={resena.id}
                 className="flex flex-col gap-3 py-6 border-b border-zinc-100 last:border-0 first:pt-0"
@@ -185,7 +218,7 @@ export const ReviewsModal = ({
                     <div className="flex items-center gap-3">
                       {renderStars(resena.calificacion)}
                       <span className="text-xs font-light text-zinc-400">
-                        {resena.fecha.toLocaleDateString("es-ES", {
+                        {new Date(resena.fecha).toLocaleDateString("es-ES", {
                           year: "numeric",
                           month: "long",
                           day: "numeric",
@@ -214,6 +247,7 @@ export const ReviewsModal = ({
                         color="danger"
                         aria-label="Eliminar"
                         className="text-zinc-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                        onPress={() => handleDelete(resena.id)}
                       >
                         <Trash2 size={14} strokeWidth={1.5} />
                       </Button>

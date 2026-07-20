@@ -4,6 +4,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardBody, CardHeader, CardFooter } from "@heroui/card";
 import { Divider } from "@heroui/divider";
 import { Button } from "@heroui/button";
+import { Alert } from "@heroui/alert"; // <-- Añadido para las notificaciones
 import {
   CheckCircle2,
   XCircle,
@@ -16,9 +17,10 @@ import {
   CreditCard,
   CalendarCheck,
 } from "lucide-react";
+import { orderService } from "../../infrastructure/services/orderService";
+import type { OrderResponse } from "../../infrastructure/services/orderService";
 
 export const Factura = () => {
-  // 1. Captura de Parámetros
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -28,23 +30,48 @@ export const Factura = () => {
   const polPaymentMethod = searchParams.get("polPaymentMethod");
   const txValue = searchParams.get("TX_VALUE");
 
-  const [orderData, setOrderData] = useState<any>(null);
+  const [orderData, setOrderData] = useState<OrderResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Estado para la notificación flotante
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: "success" | "danger" | "warning";
+  } | null>(null);
+
+  const showNotification = (
+    message: string,
+    type: "success" | "danger" | "warning" = "success",
+  ) => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 4000);
+  };
 
   useEffect(() => {
-    try {
-      const storedData = localStorage.getItem("last_order_data");
-      if (storedData) {
-        setOrderData(JSON.parse(storedData));
+    const fetchOrder = async () => {
+      if (!id) return;
+      setIsLoading(true);
+      setError(null);
+      try {
+        const data = await orderService.getById(id);
+        setOrderData(data);
+      } catch (err: any) {
+        setError(err.response?.data?.message || "Error al cargar la orden.");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (e) {
-      console.error("Error al recuperar datos de la orden", e);
-    }
-  }, []);
+    };
+    fetchOrder();
+  }, [id]);
 
-  // 2. Lógica de Estado de Transacción
   const getStatusInfo = () => {
-    switch (transactionState) {
+    const effectiveState =
+      transactionState || (orderData ? orderData.estado : null);
+    switch (effectiveState) {
       case "4":
+      case "ENTREGADO":
+      case "COMPLETADO":
         return {
           title: "¡Pago Exitoso!",
           message: "Tu orden ha sido procesada correctamente.",
@@ -59,6 +86,8 @@ export const Factura = () => {
           ),
         };
       case "6":
+      case "RECHAZADO":
+      case "FALLIDO":
         return {
           title: "Pago Rechazado",
           message: "Hubo un problema con tu método de pago.",
@@ -67,6 +96,7 @@ export const Factura = () => {
           icon: <XCircle size={56} strokeWidth={1.5} className="text-danger" />,
         };
       case "7":
+      case "PENDIENTE":
         return {
           title: "Pago Pendiente",
           message: "Tu pago está siendo verificado.",
@@ -91,15 +121,53 @@ export const Factura = () => {
     }
   };
 
+  // --- PANTALLA DE CARGA MEJORADA ---
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center font-sans">
+        <div className="w-12 h-12 border-4 border-default-200 border-t-foreground rounded-full animate-spin mb-6"></div>
+        <h2 className="text-xl font-medium text-foreground tracking-tight mb-2">
+          Generando comprobante
+        </h2>
+        <p className="text-default-500 font-light text-sm tracking-wide">
+          Conectando de forma segura...
+        </p>
+      </div>
+    );
+  }
+
+  // --- PANTALLA DE ERROR MEJORADA ---
+  if (error || !orderData) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-4 font-sans animate-appearance-in">
+        <div className="bg-danger/10 p-6 rounded-full mb-2 border border-danger-200">
+          <XCircle size={48} strokeWidth={1.5} className="text-danger" />
+        </div>
+        <h1 className="text-3xl font-semibold text-foreground tracking-tight">
+          No pudimos cargar la factura
+        </h1>
+        <p className="text-default-500 font-light mb-6 text-center max-w-md leading-relaxed">
+          {error ||
+            "La orden que buscas no existe o no tienes permisos para verla."}
+        </p>
+        <Button
+          color="default"
+          size="lg"
+          className="font-medium bg-foreground text-background shadow-none px-8"
+          onPress={() => navigate("/")}
+        >
+          Volver a la Tienda
+        </Button>
+      </div>
+    );
+  }
+
   const statusInfo = getStatusInfo();
   const orderNumber = id || referenceCode || "ORD-00000000";
 
-  // 4. Gestión de Datos Integrados (localStorage + URL params)
-  const customerName = orderData?.formData?.nombre || "Cliente Anónimo";
-  const customerAddress = orderData?.formData?.direccion || "Recojo en Tienda";
-  const customerEmail = orderData?.formData?.nombre
-    ? orderData.formData.nombre.toLowerCase().replace(/\s/g, "") + "@test.com"
-    : "cliente@appcelulares.pe";
+  const customerName = orderData.customerName || "Cliente Anónimo";
+  const customerEmail = orderData.customerEmail || "cliente@appcelulares.pe";
+  const customerAddress = orderData.direccionEntrega || "Recojo en Tienda";
 
   const paymentMethodDisplay = polPaymentMethod
     ? polPaymentMethod === "yape"
@@ -107,32 +175,47 @@ export const Factura = () => {
       : polPaymentMethod === "efectivo"
         ? "Pago en Efectivo"
         : `PayU (Método ${polPaymentMethod})`
-    : "Tarjeta de Crédito / Débito";
+    : orderData.metodoPago === "efectivo"
+      ? "Pago en Efectivo"
+      : "Tarjeta de Crédito / Débito";
 
-  const orderItems = orderData?.items || [];
+  const orderItems = orderData.items || [];
   const baseSubtotal = orderItems.reduce(
-    (acc: number, item: any) => acc + item.precio * item.quantity,
+    (acc: number, item: any) => acc + (item.precio || 0) * (item.cantidad || 1),
     0,
   );
-  const discountAmt = orderData?.discountAmount || 0;
-  const discountPct = orderData?.discountPercent || 0;
-  const taxes = orderData?.taxes || 0;
+  const discountAmt = orderData.descuento || 0;
+  const discountPct =
+    discountAmt > 0 && baseSubtotal > 0
+      ? Math.round((discountAmt / baseSubtotal) * 100)
+      : 0;
+  const taxes = orderData.impuestos || 0;
 
-  // Respetamos lo enviado por PayU (txValue) si existe, sino caemos al calculado localmente
-  const finalTotal = txValue ? parseFloat(txValue) : orderData?.total || 0;
+  const finalTotal = txValue ? parseFloat(txValue) : orderData.total || 0;
   const currentDate = new Date().toLocaleString("es-PE", {
     dateStyle: "long",
     timeStyle: "short",
   });
 
   const handleDownloadPDF = () => {
-    alert("Descargando comprobante PDF...");
+    // Reemplazamos el alert nativo por nuestra notificación flotante
+    showNotification("Generando y descargando comprobante PDF...", "success");
+    // Aquí podrías redirigir a un endpoint como GET /api/pedidos/:id/factura-pdf
   };
 
   return (
-    // 2. Estructura Visual: Contenedor principal
-    <div className="min-h-screen bg-background flex flex-col items-center py-12 lg:py-20 px-4 sm:px-6 font-sans">
-      {/* Encabezado Dinámico basado en estado */}
+    <div className="relative min-h-screen bg-background flex flex-col items-center py-12 lg:py-20 px-4 sm:px-6 font-sans">
+      {/* Alerta Flotante */}
+      {notification && (
+        <div className="fixed top-6 right-6 z-50 animate-appearance-in">
+          <Alert
+            color={notification.type}
+            title="Descarga en curso"
+            description={notification.message}
+          />
+        </div>
+      )}
+
       <div className="text-center mb-10 animate-appearance-in">
         <div className="flex justify-center mb-5">
           <div
@@ -149,10 +232,8 @@ export const Factura = () => {
         </p>
       </div>
 
-      {/* Contenedor del Documento (max-w-3xl) */}
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-3xl animate-appearance-in">
         <Card className="bg-content1 shadow-none border border-divider rounded-2xl overflow-hidden">
-          {/* HEADER DEL DOCUMENTO */}
           <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-8 bg-default-50 border-b border-divider">
             <div>
               <h2 className="text-2xl font-bold text-foreground tracking-tight">
@@ -173,7 +254,6 @@ export const Factura = () => {
           </CardHeader>
 
           <CardBody className="p-8 flex flex-col gap-8">
-            {/* BLOQUE 1: Metadatos de la Orden */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-content1">
               <div className="flex items-start gap-3">
                 <CalendarCheck size={18} className="text-default-400 mt-0.5" />
@@ -201,7 +281,6 @@ export const Factura = () => {
 
             <Divider className="bg-divider" />
 
-            {/* BLOQUE 2: Datos del Cliente */}
             <div>
               <p className="text-xs font-semibold text-foreground uppercase tracking-widest mb-4">
                 Facturado y Enviado a
@@ -229,7 +308,6 @@ export const Factura = () => {
 
             <Divider className="bg-divider" />
 
-            {/* BLOQUE 3: Detalle de Compra */}
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <ReceiptText size={18} className="text-foreground" />
@@ -259,27 +337,34 @@ export const Factura = () => {
                   <tbody>
                     {orderItems.map((item: any) => (
                       <tr
-                        key={item.id}
+                        key={item.id || item.productId}
                         className="border-b border-divider last:border-0 hover:bg-default-100 transition-colors"
                       >
                         <td className="py-4 text-sm text-foreground font-medium">
-                          {item.quantity}
+                          {item.cantidad || item.quantity}
                         </td>
                         <td className="py-4 text-sm text-default-500 font-light">
                           {item.nombre}
                         </td>
                         <td className="py-4 text-sm text-default-500 font-light text-right">
                           $
-                          {item.precio.toLocaleString("en-US", {
+                          {(
+                            item.precioUnitario ||
+                            item.precio ||
+                            0
+                          ).toLocaleString("en-US", {
                             minimumFractionDigits: 2,
                           })}
                         </td>
                         <td className="py-4 text-sm text-foreground font-medium text-right">
                           $
-                          {(item.precio * item.quantity).toLocaleString(
-                            "en-US",
-                            { minimumFractionDigits: 2 },
-                          )}
+                          {(
+                            item.subtotal ||
+                            (item.precio || 0) *
+                              (item.cantidad || item.quantity || 1)
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                          })}
                         </td>
                       </tr>
                     ))}
@@ -288,7 +373,6 @@ export const Factura = () => {
               </div>
             </div>
 
-            {/* BLOQUE 4: Totales */}
             <div className="flex justify-end pt-2">
               <div className="w-full sm:w-1/2 space-y-4">
                 <div className="flex justify-between text-sm">
@@ -303,7 +387,7 @@ export const Factura = () => {
                   </span>
                 </div>
 
-                {discountPct > 0 && (
+                {discountAmt > 0 && (
                   <div className="flex justify-between text-sm text-success">
                     <span className="font-medium">
                       Descuento ({discountPct}%)
@@ -356,8 +440,7 @@ export const Factura = () => {
         </Card>
       </div>
 
-      {/* 3. Acciones (Navegación y UX) */}
-      <div className="mt-10 flex flex-col sm:flex-row gap-4 w-full max-w-xl justify-center">
+      <div className="mt-10 flex flex-col sm:flex-row gap-4 w-full max-w-xl justify-center animate-appearance-in">
         <Button
           color="default"
           variant="flat"

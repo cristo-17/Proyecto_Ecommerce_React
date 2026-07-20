@@ -1,5 +1,5 @@
 // src/presentation/pages/ProductDetails.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "@heroui/button";
 import { Chip } from "@heroui/chip";
@@ -17,153 +17,124 @@ import {
 import { ReviewsModal } from "../components/reviews/ReviewsModal";
 import { useCartStore } from "../../application/store/useCartStore";
 import { useAuthStore } from "../../application/store/useAuthStore";
-
-const MOCK_PRODUCTS = [
-  {
-    id: "cel-001",
-    marca: "Samsung",
-    modelo: "Galaxy S24 Ultra - BMW M Edition",
-    precioActual: 1450,
-    precioAnterior: 1600,
-    stock: 15,
-    imagenes: [
-      "https://images.samsung.com/is/image/samsung/assets/pe/s2602/pcd/smartphones/PCD_Galaxy-S-KV_S26-Series_MO_720x1080.jpg?$720_1080_JPG$",
-      "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?q=80&w=800&auto=format&fit=crop",
-      "https://images.samsung.com/is/image/samsung/p6pim/pe/sm-a075mzkeltp/gallery/pe-galaxy-a07-sm-a075-sm-a075mzkeltp-thumb-549150429",
-      "https://images.unsplash.com/photo-1605236453806-6ff36851218e?q=80&w=800&auto=format&fit=crop",
-    ],
-    descripcion:
-      "La máxima expresión de tecnología y diseño. El Galaxy S24 Ultra edición exclusiva cuenta con un acabado premium inspirado en la ingeniería automotriz de alto rendimiento, marcos de titanio y el poderoso S Pen integrado.",
-    especificaciones: [
-      { caracteristica: "Procesador", valor: "Snapdragon 8 Gen 3 for Galaxy" },
-      { caracteristica: "RAM", valor: "12 GB LPDDR5X" },
-      { caracteristica: "Almacenamiento", valor: "512 GB UFS 4.0" },
-      { caracteristica: "Batería", valor: "5000 mAh (Carga Rápida 45W)" },
-      {
-        caracteristica: "Pantalla",
-        valor: '6.8" QHD+ Dynamic AMOLED 2X (120Hz)',
-      },
-    ],
-  },
-  {
-    id: "cel-002",
-    marca: "Apple",
-    modelo: "iPhone 15 Pro Max",
-    precioActual: 1299.99,
-    precioAnterior: 1499.0,
-    stock: 2,
-    imagenes: [
-      "https://images.unsplash.com/photo-1696446701796-da61225697cc?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=800&auto=format&fit=crop",
-    ],
-    descripcion:
-      "Diseñado en titanio aeroespacial. El iPhone 15 Pro Max incluye el revolucionario chip A17 Pro, un botón de acción personalizable y el sistema de cámaras más potente en un iPhone hasta ahora con zoom óptico de 5x.",
-    especificaciones: [
-      { caracteristica: "Procesador", valor: "Chip A17 Pro" },
-      { caracteristica: "RAM", valor: "8 GB" },
-      { caracteristica: "Almacenamiento", valor: "256 GB NVMe" },
-      { caracteristica: "Batería", valor: "4422 mAh (MagSafe 15W)" },
-      {
-        caracteristica: "Pantalla",
-        valor: '6.7" Super Retina XDR OLED (120Hz)',
-      },
-    ],
-  },
-  {
-    id: "cel-003",
-    marca: "Google",
-    modelo: "Pixel 8 Pro",
-    precioActual: 999.0,
-    precioAnterior: 1150.0,
-    stock: 0,
-    imagenes: [
-      "https://images.unsplash.com/photo-1696446700622-48df1ab53744?q=80&w=800&auto=format&fit=crop",
-      "https://images.unsplash.com/photo-1598327105666-5b89351cb31b?q=80&w=800&auto=format&fit=crop",
-    ],
-    descripcion:
-      "El poder de la IA de Google en tus manos. Con el Pixel 8 Pro tendrás fotos y videos impresionantes, un diseño elegante en colores mate y la experiencia de Android más pura, fluida y con 7 años de actualizaciones.",
-    especificaciones: [
-      { caracteristica: "Procesador", valor: "Google Tensor G3" },
-      { caracteristica: "RAM", valor: "12 GB LPDDR5X" },
-      { caracteristica: "Almacenamiento", valor: "128 GB UFS 3.1" },
-      { caracteristica: "Batería", valor: "5050 mAh (Carga Inalámbrica)" },
-      {
-        caracteristica: "Pantalla",
-        valor: '6.7" LTPO OLED (120Hz HDR10+)',
-      },
-    ],
-  },
-];
+import { productService } from "../../infrastructure/services/productService";
+import type { Product } from "../../domain/models/appCelulares.model";
 
 export const ProductDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
 
-  // Buscar el producto dinámicamente
-  const product = MOCK_PRODUCTS.find((p) => p.id === id);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [selectedImage, setSelectedImage] = useState(
-    product?.imagenes[0] || "",
-  );
-
-  // Actualizar la imagen seleccionada cuando cambia la ruta o el producto
-  useEffect(() => {
-    if (product) {
-      setSelectedImage(product.imagenes[0]);
-    }
-  }, [product]);
-
-  // Estado para el Modal de Reseñas
+  const [selectedImage, setSelectedImage] = useState("");
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
-
-  // Estado para la alerta de Agregar al Carrito
   const [isAdded, setIsAdded] = useState(false);
 
-  // 1. Corrección del Bug de Autenticación (Zustand)
   const { user } = useAuthStore();
   const userRole = user?.rol || "INVITADO";
-
-  // Extrae la función del store
   const { addToCart } = useCartStore();
 
-  if (!product) {
+  // Función de carga extraída y mejorada para permitir "background fetching"
+  const fetchProduct = useCallback(
+    async (isBackgroundRefresh = false) => {
+      if (!id) return;
+
+      // Solo mostramos el spinner si NO es una actualización en segundo plano
+      if (!isBackgroundRefresh) {
+        setIsLoading(true);
+      }
+
+      setError(null);
+      try {
+        const data = await productService.getById(id);
+        setProduct(data);
+
+        // Solo actualizamos la imagen principal en la carga inicial para evitar parpadeos
+        if (!isBackgroundRefresh) {
+          if (data.imagenes && data.imagenes.length > 0) {
+            setSelectedImage(data.imagenes[0]);
+          } else if (data.imagenUrl) {
+            setSelectedImage(data.imagenUrl);
+          }
+        }
+      } catch (err: any) {
+        if (!isBackgroundRefresh) {
+          setError(err.response?.data?.message || "Producto no encontrado");
+        }
+      } finally {
+        if (!isBackgroundRefresh) {
+          setIsLoading(false);
+        }
+      }
+    },
+    [id],
+  );
+
+  useEffect(() => {
+    fetchProduct();
+  }, [fetchProduct]);
+
+  // Manejador al cerrar el modal de reseñas
+  const handleCloseReviews = () => {
+    setIsReviewsOpen(false);
+    // Refrescamos los datos en segundo plano para actualizar el contador de reseñas y estrellas
+    fetchProduct(true);
+  };
+
+  // --- PANTALLA DE CARGA ESTANDARIZADA ---
+  if (isLoading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-5 px-4 font-sans">
+      <div className="min-h-[60vh] flex flex-col items-center justify-center font-sans">
+        <div className="w-12 h-12 border-4 border-default-200 border-t-foreground rounded-full animate-spin mb-4"></div>
+        <p className="text-default-500 font-light text-lg">
+          Cargando producto...
+        </p>
+      </div>
+    );
+  }
+
+  // --- PANTALLA DE ERROR ESTANDARIZADA ---
+  if (error || !product) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-5 px-4 font-sans animate-appearance-in">
+        <div className="bg-default-100 p-6 rounded-full mb-2 border border-divider">
+          <Package size={48} strokeWidth={1.5} className="text-default-400" />
+        </div>
         <h2 className="text-3xl font-bold text-foreground tracking-tight">
           Producto no encontrado
         </h2>
-        <p className="text-default-500 font-light tracking-wide text-center">
-          El equipo que buscas no existe o ha sido retirado del catálogo.
+        <p className="text-default-500 font-light tracking-wide text-center max-w-md">
+          {error ||
+            "El equipo que buscas no existe o ha sido retirado del catálogo."}
         </p>
         <Button
           color="default"
           size="lg"
-          className="mt-2 font-medium bg-foreground text-background hover:opacity-80 transition-colors shadow-none"
+          className="mt-2 font-medium bg-foreground text-background hover:opacity-80 transition-colors shadow-none px-8"
           onPress={() => navigate("/")}
         >
-          Volver al Catálogo
+          Volver a la Tienda
         </Button>
       </div>
     );
   }
 
   const handleAddToCart = () => {
-    // Inyección de la lógica de Zustand mapeando el producto actual
     addToCart(
       {
         id: product.id,
         nombre: product.modelo,
-        precio: product.precioActual,
-        imagen: product.imagenes[0],
+        precio: product.precio,
+        imagen:
+          product.imagenUrl || (product.imagenes && product.imagenes[0]) || "",
         marca: product.marca,
       },
-      1, // Cantidad por defecto a agregar
+      1,
     );
-
     setIsAdded(true);
-    setTimeout(() => {
-      setIsAdded(false);
-    }, 3000);
+    setTimeout(() => setIsAdded(false), 3000);
   };
 
   const renderActionButton = () => {
@@ -185,7 +156,6 @@ export const ProductDetails = () => {
             </p>
           </div>
         );
-
       case "CLIENTE":
         if (product.stock === 0) {
           return (
@@ -210,7 +180,6 @@ export const ProductDetails = () => {
             Agregar al carrito
           </Button>
         );
-
       case "PROVEEDOR":
       case "ADMIN":
         return (
@@ -225,15 +194,21 @@ export const ProductDetails = () => {
             </Button>
           </div>
         );
-
       default:
         return null;
     }
   };
 
+  // Construir especificaciones para la tabla
+  const especificaciones = product.especificaciones || {};
+  const specsArray = Object.entries(especificaciones).map(([key, value]) => ({
+    caracteristica: key.charAt(0).toUpperCase() + key.slice(1),
+    valor: value,
+  }));
+
   return (
     <>
-      {/* Alerta flotante superior derecha */}
+      {/* Notificación de Carrito */}
       {isAdded && (
         <div className="fixed top-6 right-6 z-50 animate-appearance-in">
           <Alert
@@ -244,7 +219,7 @@ export const ProductDetails = () => {
         </div>
       )}
 
-      <div className="container mx-auto px-4 py-12 max-w-7xl">
+      <div className="container mx-auto px-4 py-12 max-w-7xl animate-appearance-in">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
           {/* COLUMNA IZQUIERDA: Galería de Imágenes */}
           <div className="flex flex-col gap-6">
@@ -258,26 +233,28 @@ export const ProductDetails = () => {
               />
             </div>
 
-            <div className="flex gap-4 overflow-x-auto py-2 px-1">
-              {product.imagenes.map((img, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(img)}
-                  className={`flex-shrink-0 border-2 rounded-xl overflow-hidden transition-all duration-300 ${
-                    selectedImage === img
-                      ? "border-foreground opacity-100"
-                      : "border-transparent opacity-60 hover:opacity-100"
-                  }`}
-                >
-                  <Image
-                    src={img}
-                    alt={`Miniatura ${index + 1}`}
-                    className="object-cover w-20 h-20 bg-default-50"
-                    radius="none"
-                  />
-                </button>
-              ))}
-            </div>
+            {product.imagenes && product.imagenes.length > 1 && (
+              <div className="flex gap-4 overflow-x-auto py-2 px-1">
+                {product.imagenes.map((img: string, index: number) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImage(img)}
+                    className={`flex-shrink-0 border-2 rounded-xl overflow-hidden transition-all duration-300 ${
+                      selectedImage === img
+                        ? "border-foreground opacity-100"
+                        : "border-transparent opacity-60 hover:opacity-100"
+                    }`}
+                  >
+                    <Image
+                      src={img}
+                      alt={`Miniatura ${index + 1}`}
+                      className="object-cover w-20 h-20 bg-default-50"
+                      radius="none"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* COLUMNA DERECHA: Información y Acción */}
@@ -295,21 +272,22 @@ export const ProductDetails = () => {
               <div className="flex items-end gap-4">
                 <span className="text-4xl font-light text-foreground tracking-tight">
                   $
-                  {product.precioActual.toLocaleString(undefined, {
+                  {product.precio.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
                 </span>
-                <span className="text-xl font-light text-default-400 line-through mb-1">
-                  $
-                  {product.precioAnterior.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </span>
+                {product.precioAnterior && (
+                  <span className="text-xl font-light text-default-400 line-through mb-1">
+                    $
+                    {product.precioAnterior.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </span>
+                )}
               </div>
 
-              {/* BADGES DE STOCK */}
               <div className="flex items-center mt-1">
                 {product.stock === 0 ? (
                   <Chip
@@ -342,16 +320,21 @@ export const ProductDetails = () => {
               </div>
             </div>
 
-            {/* BOTÓN DE RESEÑAS INTEGRADO */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-1">
-                <Star className="fill-foreground text-foreground w-4 h-4" />
-                <Star className="fill-foreground text-foreground w-4 h-4" />
-                <Star className="fill-foreground text-foreground w-4 h-4" />
-                <Star className="fill-foreground text-foreground w-4 h-4" />
-                <Star className="fill-default-200 text-default-200 w-4 h-4" />
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    size={14}
+                    className={
+                      star <= (product.promedioResenas || 0)
+                        ? "fill-foreground text-foreground"
+                        : "fill-default-200 text-default-200"
+                    }
+                  />
+                ))}
                 <span className="text-sm font-medium text-foreground ml-2">
-                  4.8
+                  {(product.promedioResenas || 0).toFixed(1)}
                 </span>
               </div>
               <Button
@@ -362,7 +345,7 @@ export const ProductDetails = () => {
                 startContent={<MessageSquare size={16} strokeWidth={1.5} />}
                 onPress={() => setIsReviewsOpen(true)}
               >
-                Ver Reseñas (3)
+                Ver Reseñas ({product.totalResenas || 0})
               </Button>
             </div>
 
@@ -393,10 +376,8 @@ export const ProductDetails = () => {
               {product.descripcion}
             </p>
 
-            {/* Acción Condicional */}
             {renderActionButton()}
 
-            {/* Garantía */}
             <div className="flex flex-col gap-4 mt-6 p-5 bg-default-50 rounded-xl border border-divider">
               <div className="flex items-center gap-3">
                 <ShieldCheck
@@ -425,37 +406,38 @@ export const ProductDetails = () => {
 
         <Divider className="my-16 bg-divider" />
 
-        {/* ESPECIFICACIONES */}
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-foreground mb-8 tracking-tight">
-            Especificaciones Técnicas
-          </h2>
-          <div className="bg-content1 rounded-xl border border-divider overflow-hidden shadow-sm">
-            <table className="w-full text-left border-collapse">
-              <tbody>
-                {product.especificaciones.map((spec, index) => (
-                  <tr
-                    key={index}
-                    className="border-b border-divider last:border-0 even:bg-default-50 hover:bg-default-100 transition-colors"
-                  >
-                    <th className="py-4 px-6 font-medium text-default-500 w-1/3 border-r border-divider">
-                      {spec.caracteristica}
-                    </th>
-                    <td className="py-4 px-6 text-default-500 font-light">
-                      {spec.valor}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {specsArray.length > 0 && (
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-2xl font-bold text-foreground mb-8 tracking-tight">
+              Especificaciones Técnicas
+            </h2>
+            <div className="bg-content1 rounded-xl border border-divider overflow-hidden shadow-sm">
+              <table className="w-full text-left border-collapse">
+                <tbody>
+                  {specsArray.map((spec, index) => (
+                    <tr
+                      key={index}
+                      className="border-b border-divider last:border-0 even:bg-default-50 hover:bg-default-100 transition-colors"
+                    >
+                      <th className="py-4 px-6 font-medium text-default-500 w-1/3 border-r border-divider">
+                        {spec.caracteristica}
+                      </th>
+                      <td className="py-4 px-6 text-default-500 font-light">
+                        {spec.valor}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* RENDERIZADO DEL MODAL */}
+      {/* RENDERIZADO DEL MODAL CON ACTUALIZACIÓN SILENCIOSA */}
       <ReviewsModal
         isOpen={isReviewsOpen}
-        onClose={() => setIsReviewsOpen(false)}
+        onClose={handleCloseReviews}
         productId={product.id}
       />
     </>

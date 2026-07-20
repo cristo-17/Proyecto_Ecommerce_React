@@ -16,7 +16,7 @@ const AVAILABLE_BRANDS = ["Apple", "Samsung", "Xiaomi", "Google", "Motorola"];
 export const Catalog = () => {
   const navigate = useNavigate();
 
-  // Consumimos el estado y la lógica de filtrado desde nuestro Hook
+  // Consumimos el estado y la lógica de filtrado desde nuestro Hook refactorizado
   const {
     searchTerm,
     setSearchTerm,
@@ -24,14 +24,18 @@ export const Catalog = () => {
     toggleBrand,
     priceRange,
     setPriceRange,
-    filteredProducts,
+    products,
+    isLoading,
+    error,
   } = useCatalogFilters();
+
+  const hasError = !!error;
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-7xl font-sans">
       <div className="flex flex-col lg:flex-row gap-10">
         {/* =========================================
-            BARRA LATERAL (FILTROS)
+            BARRA LATERAL (FILTROS) - ¡AHORA NUNCA DESAPARECE!
             ========================================= */}
         <aside className="w-full lg:w-1/4 flex flex-col gap-10">
           <div>
@@ -102,7 +106,6 @@ export const Catalog = () => {
                 Selecciona el rango de precios que deseas ver.
               </Label>
 
-              {/* El componente raíz Slider ahora junta tus antiguas clases 'base' y 'className' */}
               <Slider
                 step={50}
                 minValue={0}
@@ -112,16 +115,9 @@ export const Catalog = () => {
                 formatOptions={{ style: "currency", currency: "USD" }}
                 className="max-w-md w-full"
               >
-                {/* Muestra el precio formateado con los estilos que tenías en 'value' */}
                 <Slider.Output className="text-default-500 font-medium text-sm" />
-
-                {/* Contenedor de la barra (reemplaza a 'track') */}
                 <Slider.Track className="bg-default-200/60 border-s-foreground">
-                  {/* Barra de progreso/relleno (reemplaza a 'filler') */}
                   <Slider.Fill className="bg-foreground" />
-
-                  {/* El botón deslizante (reemplaza a 'thumb') */}
-                  {/* Nota: Al usar un rango (array de dos números), v3 renderiza automáticamente dos selectores si pasas un array en 'value' */}
                   <Slider.Thumb className="bg-foreground border-foreground after:bg-foreground" />
                 </Slider.Track>
               </Slider>
@@ -140,13 +136,35 @@ export const Catalog = () => {
                 : "Todos los equipos"}
             </h2>
             <span className="text-sm font-light text-default-500">
-              {filteredProducts.length}{" "}
-              {filteredProducts.length === 1 ? "producto" : "productos"}
+              {products.length}{" "}
+              {products.length === 1 ? "producto" : "productos"}
             </span>
           </div>
 
-          {/* Estado Vacío */}
-          {filteredProducts.length === 0 ? (
+          {/* LÓGICA DE RENDERIZADO (Error -> Cargando -> Vacío -> Grilla) */}
+          {hasError ? (
+            <div className="flex flex-col items-center justify-center py-32 px-4 text-center border border-dashed border-divider rounded-2xl bg-content1">
+              <div className="bg-content1 p-5 rounded-full text-default-400 mb-6 shadow-sm border border-divider">
+                <SearchX size={32} strokeWidth={1.5} />
+              </div>
+              <h2 className="text-lg font-medium text-foreground mb-2 tracking-tight">
+                Error al cargar productos
+              </h2>
+              <p className="text-default-500 font-light max-w-sm mx-auto mb-8 text-sm">
+                {error}
+              </p>
+            </div>
+          ) : isLoading ? (
+            <div className="flex flex-col items-center justify-center py-32 px-4 text-center border border-dashed border-divider rounded-2xl bg-content1 min-h-[400px]">
+              <div className="w-10 h-10 border-3 border-default-200 border-t-foreground rounded-full animate-spin mb-4"></div>
+              <h2 className="text-lg font-medium text-foreground mb-2 tracking-tight">
+                Buscando equipos...
+              </h2>
+              <p className="text-default-500 font-light max-w-sm mx-auto text-sm">
+                Conectando con el servidor
+              </p>
+            </div>
+          ) : products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-32 px-4 text-center border border-dashed border-divider rounded-2xl bg-content1">
               <div className="bg-content1 p-5 rounded-full text-default-400 mb-6 shadow-sm border border-divider">
                 <SearchX size={32} strokeWidth={1.5} />
@@ -173,7 +191,7 @@ export const Catalog = () => {
           ) : (
             /* Grilla de Productos */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredProducts.map((product) => (
+              {products.map((product) => (
                 <Card
                   key={product.id}
                   shadow="none"

@@ -9,6 +9,7 @@ import { Alert } from "@heroui/alert";
 import { Divider } from "@heroui/divider";
 import { Truck, Trash2, ShoppingBag } from "lucide-react";
 import { useCartStore } from "../../application/store/useCartStore";
+import { productService } from "../../infrastructure/services/productService";
 
 export const Cart = () => {
   const navigate = useNavigate();
@@ -17,6 +18,9 @@ export const Cart = () => {
   const { items, updateQuantity, removeFromCart } = useCartStore();
 
   const [isProcessing, setIsProcessing] = useState(false);
+  const [stockError, setStockError] = useState<string | null>(null);
+  // Nuevo estado para mostrar que la validación fue exitosa
+  const [isSuccess, setIsSuccess] = useState(false); 
 
   // Cálculo en tiempo real basado en el estado de Zustand
   const subtotal = items.reduce(
@@ -26,11 +30,37 @@ export const Cart = () => {
 
   const progressToFreeShipping = Math.min((subtotal / 2000) * 100, 100);
 
-  const handleCheckoutClick = () => {
+  const handleCheckoutClick = async () => {
+    setStockError(null);
     setIsProcessing(true);
-    setTimeout(() => {
-      navigate("/checkout");
-    }, 2000);
+    setIsSuccess(false);
+
+    try {
+      // Verificar stock de cada producto contra el backend
+      for (const item of items) {
+        const product = await productService.getById(String(item.id));
+        if (product.stock < item.quantity) {
+          setStockError(
+            `"${product.modelo}" solo tiene ${product.stock} unidades disponibles. Por favor ajusta la cantidad.`,
+          );
+          setIsProcessing(false);
+          return;
+        }
+      }
+
+      // Si todo está bien, mostramos el estado de éxito y navegamos con un pequeño retraso (UX del diseño original)
+      setIsSuccess(true);
+      setTimeout(() => {
+        navigate("/checkout");
+      }, 1500);
+      
+    } catch (error: any) {
+      setStockError(
+        error.response?.data?.message ||
+          "Error al verificar el stock. Inténtalo de nuevo.",
+      );
+      setIsProcessing(false);
+    }
   };
 
   // --- ESTADO VACÍO ---
@@ -62,16 +92,29 @@ export const Cart = () => {
   // --- ESTADO LLENO ---
   return (
     <div className="relative min-h-screen py-12 px-4 lg:px-8 max-w-7xl mx-auto">
-      {/* Alerta flotante superior derecha */}
-      {isProcessing && (
-        <div className="fixed top-6 right-6 z-50 animate-appearance-in">
-          <Alert
-            color="success"
-            title="Procesando tu carrito..."
-            description="Redirigiendo al pago seguro."
-          />
-        </div>
-      )}
+      
+      {/* Contenedor de Alertas Flotantes (Soporta Error y Éxito) */}
+      <div className="fixed top-6 right-6 z-50 flex flex-col gap-3">
+        {stockError && (
+          <div className="animate-appearance-in">
+            <Alert
+              color="danger"
+              title="Error de stock"
+              description={stockError}
+            />
+          </div>
+        )}
+
+        {isSuccess && (
+          <div className="animate-appearance-in">
+            <Alert
+              color="success"
+              title="Procesando tu carrito..."
+              description="Redirigiendo al pago seguro."
+            />
+          </div>
+        )}
+      </div>
 
       <h1 className="text-3xl font-semibold text-foreground mb-10 tracking-tight">
         Carrito de Compras

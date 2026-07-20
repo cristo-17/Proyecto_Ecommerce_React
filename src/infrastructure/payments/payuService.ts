@@ -1,5 +1,4 @@
 // src/infrastructure/payments/payuService.ts
-import CryptoJS from "crypto-js";
 
 export interface PayUCheckoutParams {
   amount: string;
@@ -8,12 +7,9 @@ export interface PayUCheckoutParams {
   buyerFullName: string;
   payerPhone: string;
   payerDNI: string;
+  signature: string; // Ahora viene del backend
 }
 
-// Credenciales y Configuración PayU (Hardcoded para Pruebas)
-const merchantId = "508029";
-const accountId = "512323";
-const apiKey = "4Vj8eK4rloUd272L48hsrarnUA";
 const PAYU_URL = "https://sandbox.checkout.payulatam.com/ppp-web-gateway-payu/";
 
 export const processPayUCheckout = async ({
@@ -23,12 +19,13 @@ export const processPayUCheckout = async ({
   buyerFullName,
   payerPhone,
   payerDNI,
+  signature,
 }: PayUCheckoutParams): Promise<void> => {
-  // Cálculo de firma MD5 según requerimientos de PayU
-  const signatureString = `${apiKey}~${merchantId}~${referenceCode}~${amount}~PEN`;
-  const signature = CryptoJS.MD5(signatureString).toString();
+  // Los valores merchantId, accountId también deberían venir del backend en un entorno real,
+  // pero como no son secretos, podemos mantenerlos aquí o recibirlos también.
+  const merchantId = "508029";
+  const accountId = "512323";
 
-  // Creación dinámica del formulario oculto
   const form = document.createElement("form");
   form.method = "POST";
   form.action = PAYU_URL;
@@ -42,7 +39,7 @@ export const processPayUCheckout = async ({
     tax: "0",
     taxReturnBase: "0",
     currency: "PEN",
-    signature,
+    signature, // Usamos la firma recibida del backend
     test: "1",
     buyerEmail,
     buyerFullName,
@@ -66,7 +63,6 @@ export const processPayUCheckout = async ({
     form.appendChild(input);
   });
 
-  // Agregar al DOM, enviar y limpiar
   document.body.appendChild(form);
   form.submit();
   document.body.removeChild(form);

@@ -1,5 +1,5 @@
 // src/presentation/pages/ProviderDashboard.tsx
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@heroui/button";
 import { Tabs, Tab } from "@heroui/tabs";
 import {
@@ -11,6 +11,7 @@ import {
   TableCell,
 } from "@heroui/table";
 import { Chip } from "@heroui/chip";
+import { Alert } from "@heroui/alert"; // <-- Añadido para notificaciones UI
 import {
   Dropdown,
   DropdownTrigger,
@@ -24,114 +25,93 @@ import { ProviderProductModal } from "../components/provider/ProviderProductModa
 import { ProviderDeleteModal } from "../components/provider/ProviderDeleteModal";
 import type { Product } from "../../domain/models/appCelulares.model";
 import { useAuthStore } from "../../application/store/useAuthStore";
-
-// 1. Mock Data de Inventario
-const INITIAL_PRODUCTS: Product[] = [
-  {
-    id: "cel-001",
-    marca: "Samsung",
-    modelo: "Galaxy S24 Ultra - BMW M Edition",
-    precio: 1450,
-    stock: 12,
-    imagenUrl:
-      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR6idTnBxqn8EtuoOsQ4xT8eviWVTdS9EVix0WzyMavj0EbgA_yRw15nxc&s=10",
-    proveedor: "Samsung Global",
-    especificaciones: {
-      ram: "12GB",
-      almacenamiento: "512GB",
-      pantalla: "6.8 AMOLED",
-      procesador: "Snapdragon 8 Gen 3",
-      camaraPrincipal: "200MP",
-      bateria: "5000mAh",
-    },
-  },
-  {
-    id: "cel-002",
-    marca: "Apple",
-    modelo: "iPhone 15 Pro Max",
-    precio: 1299,
-    stock: 5,
-    imagenUrl:
-      "https://http2.mlstatic.com/D_Q_NP_801419-MLA93327187554_092025-O.webp",
-    proveedor: "AppleCorp",
-    especificaciones: {
-      ram: "8GB",
-      almacenamiento: "256GB",
-      pantalla: "6.7 OLED",
-      procesador: "A17 Pro",
-      camaraPrincipal: "48MP",
-      bateria: "4422mAh",
-    },
-  },
-];
-
-// 2. Mock Data de Pedidos / Logística
-type PaymentStatus = "Pagado" | "Pendiente" | "Rechazado";
-type ShippingStatus = "Pendiente" | "Preparando" | "Despachado" | "Entregado";
-
-interface Order {
-  id: string;
-  customer: string;
-  date: string;
-  total: number;
-  paymentStatus: PaymentStatus;
-  shippingStatus: ShippingStatus;
-}
-
-const MOCK_ORDERS: Order[] = [
-  {
-    id: "ORD-298374",
-    customer: "Juan Pérez",
-    date: "17 Jul 2026",
-    total: 1450,
-    paymentStatus: "Pagado",
-    shippingStatus: "Pendiente",
-  },
-  {
-    id: "ORD-928371",
-    customer: "María López",
-    date: "18 Jul 2026",
-    total: 1299,
-    paymentStatus: "Pendiente",
-    shippingStatus: "Pendiente",
-  },
-  {
-    id: "ORD-102938",
-    customer: "Carlos Ruiz",
-    date: "19 Jul 2026",
-    total: 2900,
-    paymentStatus: "Rechazado",
-    shippingStatus: "Pendiente",
-  },
-  {
-    id: "ORD-564738",
-    customer: "Ana Gómez",
-    date: "20 Jul 2026",
-    total: 999,
-    paymentStatus: "Pagado",
-    shippingStatus: "Despachado",
-  },
-];
+import { productService } from "../../infrastructure/services/productService";
+import {
+  orderService,
+  type OrderResponse,
+} from "../../infrastructure/services/orderService";
+import { proveedorService } from "../../infrastructure/services/proveedorService";
 
 export const ProviderDashboard = () => {
-  // LECTURA DE ROL (Auth Integration)
   const { user } = useAuthStore();
-  const userRole = user?.rol || localStorage.getItem("user_role") || "INVITADO";
-  const currentUserCompany = user?.nombre || "Samsung Global";
+  const userRole = user?.rol || "INVITADO";
+  const currentUserCompany = user?.nombre || "Mi Empresa";
 
-  // Filtramos la data: El Admin ve todo, el Proveedor solo lo suyo
-  const displayedProducts =
-    userRole === "ADMIN"
-      ? INITIAL_PRODUCTS
-      : INITIAL_PRODUCTS.filter((p) => p.proveedor === currentUserCompany);
+  // Estado global estandarizado para notificaciones flotantes UI
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: "danger" | "success";
+  } | null>(null);
 
-  // Estados
-  const [products, setProducts] = useState<Product[]>(displayedProducts);
-  const [orders, setOrders] = useState<Order[]>(MOCK_ORDERS);
+  const showNotification = (
+    message: string,
+    type: "danger" | "success" = "success",
+  ) => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 4000);
+  };
 
+  // Estados para productos
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState<string | null>(null);
+
+  // Estados para pedidos
+  const [orders, setOrders] = useState<OrderResponse[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+
+  // Estados de modales y edición
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Cargar productos
+  const fetchProducts = useCallback(async () => {
+    setIsLoadingProducts(true);
+    setProductsError(null);
+    try {
+      if (userRole === "PROVEEDOR") {
+        // Obtener el perfil del proveedor para filtrar sus productos
+        const profile = await proveedorService.getMyProfile();
+        const response = await productService.getCatalog({
+          proveedorId: profile.id,
+        } as any);
+        setProducts(response.content || []);
+      } else {
+        const response = await productService.getCatalog({});
+        setProducts(response.content || []);
+      }
+    } catch (err: any) {
+      setProductsError(
+        err.response?.data?.message || "Error al cargar productos",
+      );
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  }, [userRole]);
+
+  // Cargar pedidos
+  const fetchOrders = useCallback(async () => {
+    setIsLoadingOrders(true);
+    setOrdersError(null);
+    try {
+      // Obtenemos los pedidos del usuario actual (si es admin, verá todos; si es proveedor, solo los suyos)
+      const data = await orderService.getMyOrders();
+      setOrders(data);
+    } catch (err: any) {
+      setOrdersError(err.response?.data?.message || "Error al cargar pedidos");
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+    fetchOrders();
+  }, [fetchProducts, fetchOrders]);
 
   // --- MANEJADORES DEL INVENTARIO ---
   const handleOpenCreate = () => {
@@ -149,67 +129,113 @@ export const ProviderDashboard = () => {
     setIsDeleteModalOpen(true);
   };
 
-  const handleSaveProduct = (data: Product) => {
-    const productData = { ...data, proveedor: currentUserCompany };
-    if (selectedProduct) {
-      setProducts(
-        products.map((p) =>
-          p.id === selectedProduct.id
-            ? { ...productData, id: selectedProduct.id }
-            : p,
-        ),
+  const handleSaveProduct = async (data: Product) => {
+    setIsSaving(true);
+    try {
+      if (selectedProduct) {
+        // Editar
+        await productService.update(selectedProduct.id, data);
+        showNotification("Producto actualizado correctamente.", "success");
+      } else {
+        // Crear
+        await productService.create(data as any);
+        showNotification("Nuevo producto publicado con éxito.", "success");
+      }
+      setIsProductModalOpen(false);
+      await fetchProducts(); // Refrescar lista
+    } catch (err: any) {
+      showNotification(
+        err.response?.data?.message || "Error al guardar el producto",
+        "danger",
       );
-    } else {
-      setProducts([...products, { ...productData, id: `cel-${Date.now()}` }]);
+    } finally {
+      setIsSaving(false);
     }
-    setIsProductModalOpen(false);
   };
 
-  const handleConfirmDelete = () => {
-    if (selectedProduct) {
-      setProducts(products.filter((p) => p.id !== selectedProduct.id));
+  const handleConfirmDelete = async () => {
+    if (!selectedProduct) return;
+    setIsDeleting(true);
+    try {
+      await productService.delete(selectedProduct.id);
       setIsDeleteModalOpen(false);
       setSelectedProduct(null);
+      showNotification("Producto eliminado del inventario.", "success");
+      await fetchProducts();
+    } catch (err: any) {
+      showNotification(
+        err.response?.data?.message || "Error al eliminar el producto",
+        "danger",
+      );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
   // --- MANEJADORES DE PEDIDOS LOGÍSTICOS ---
-  const getPaymentStatusColor = (status: PaymentStatus) => {
+  const getPaymentStatusColor = (status: string) => {
     switch (status) {
       case "Pagado":
+      case "COMPLETADO":
         return "success";
       case "Pendiente":
+      case "PENDIENTE":
         return "warning";
       case "Rechazado":
+      case "FALLIDO":
         return "danger";
       default:
         return "default";
     }
   };
 
-  const getShippingStatusColor = (status: ShippingStatus) => {
+  const getShippingStatusColor = (status: string) => {
     switch (status) {
       case "Entregado":
+      case "ENTREGADO":
         return "success";
       case "Despachado":
+      case "ENVIADO":
         return "primary";
       case "Preparando":
+      case "PROCESANDO":
         return "secondary";
       default:
         return "default";
     }
   };
 
-  const handleUpdateShipping = (orderId: string, newStatus: ShippingStatus) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === orderId ? { ...order, shippingStatus: newStatus } : order,
-      ),
-    );
+  const handleUpdateShipping = async (orderId: string, newStatus: string) => {
+    try {
+      await orderService.updateShippingStatus(orderId, newStatus);
+      // Actualizar estado localmente (o refrescar)
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId ? { ...order, estado: newStatus } : order,
+        ),
+      );
+      showNotification("Estado de envío actualizado correctamente.", "success");
+    } catch (err: any) {
+      showNotification(
+        err.response?.data?.message || "Error al actualizar el estado de envío",
+        "danger",
+      );
+    }
   };
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-7xl mx-auto min-h-screen pb-12">
+    <div className="relative flex flex-col gap-8 w-full max-w-7xl mx-auto min-h-screen pb-12">
+      {/* Alerta Flotante UI */}
+      {notification && (
+        <div className="fixed top-6 right-6 z-50 animate-appearance-in">
+          <Alert
+            color={notification.type}
+            title={notification.type === "danger" ? "Error" : "Éxito"}
+            description={notification.message}
+          />
+        </div>
+      )}
+
       {/* CABECERA PRINCIPAL DINÁMICA */}
       <div className="pt-4 px-4 lg:px-0">
         <h1 className="text-3xl font-semibold text-foreground tracking-tight">
@@ -275,19 +301,45 @@ export const ProviderDashboard = () => {
               )}
             </div>
 
-            <div className="bg-content1 rounded-2xl border border-divider overflow-x-auto">
-              <ProviderInventoryTable
-                products={products}
-                role={userRole}
-                onEditClick={handleOpenEdit}
-                onDeleteClick={handleOpenDelete}
-              />
+            {/* Contenedor Relativo para Evitar Saltos de Layout */}
+            <div className="bg-content1 rounded-2xl border border-divider overflow-hidden relative min-h-[400px]">
+              {isLoadingProducts && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-content1/70 backdrop-blur-sm">
+                  <div className="w-8 h-8 border-3 border-default-200 border-t-foreground rounded-full animate-spin"></div>
+                  <p className="text-default-500 font-light mt-3 text-sm">
+                    Cargando inventario...
+                  </p>
+                </div>
+              )}
+
+              {productsError && !isLoadingProducts && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-content1 gap-3">
+                  <p className="text-danger font-medium">{productsError}</p>
+                  <Button
+                    color="default"
+                    variant="flat"
+                    onPress={fetchProducts}
+                    size="sm"
+                  >
+                    Reintentar
+                  </Button>
+                </div>
+              )}
+
+              <div className="overflow-x-auto">
+                <ProviderInventoryTable
+                  products={products}
+                  role={userRole}
+                  onEditClick={handleOpenEdit}
+                  onDeleteClick={handleOpenDelete}
+                />
+              </div>
             </div>
           </div>
         </Tab>
 
         {/* ==========================================
-            PESTAÑA 2: CONTROL DE PEDIDOS (NUEVA)
+            PESTAÑA 2: CONTROL DE PEDIDOS
             ========================================== */}
         <Tab
           key="pedidos"
@@ -299,7 +351,31 @@ export const ProviderDashboard = () => {
           }
         >
           <div className="pt-6 px-4 lg:px-0">
-            <div className="bg-content1 rounded-2xl border border-divider overflow-hidden shadow-sm">
+            {/* Contenedor Relativo para Evitar Saltos de Layout */}
+            <div className="bg-content1 rounded-2xl border border-divider overflow-hidden shadow-sm relative min-h-[300px]">
+              {isLoadingOrders && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-content1/70 backdrop-blur-sm">
+                  <div className="w-8 h-8 border-3 border-default-200 border-t-foreground rounded-full animate-spin"></div>
+                  <p className="text-default-500 font-light mt-3 text-sm">
+                    Cargando pedidos...
+                  </p>
+                </div>
+              )}
+
+              {ordersError && !isLoadingOrders && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-content1 gap-3">
+                  <p className="text-danger font-medium">{ordersError}</p>
+                  <Button
+                    color="default"
+                    variant="flat"
+                    onPress={fetchOrders}
+                    size="sm"
+                  >
+                    Reintentar
+                  </Button>
+                </div>
+              )}
+
               <Table
                 aria-label="Control de Pedidos Logísticos"
                 removeWrapper
@@ -313,11 +389,18 @@ export const ProviderDashboard = () => {
                   <TableColumn>Cliente</TableColumn>
                   <TableColumn>Fecha</TableColumn>
                   <TableColumn>Total</TableColumn>
-                  <TableColumn>Estado de Pago (PayU)</TableColumn>
+                  <TableColumn>Estado de Pago</TableColumn>
                   <TableColumn>Estado de Envío</TableColumn>
                   <TableColumn align="center">Acciones</TableColumn>
                 </TableHeader>
-                <TableBody items={orders}>
+                <TableBody
+                  items={orders}
+                  emptyContent={
+                    !isLoadingOrders && !ordersError
+                      ? "No hay pedidos registrados en este momento."
+                      : " "
+                  }
+                >
                   {(order) => (
                     <TableRow
                       key={order.id}
@@ -327,39 +410,39 @@ export const ProviderDashboard = () => {
                         {order.id}
                       </TableCell>
                       <TableCell className="text-default-500 font-medium">
-                        {order.customer}
+                        {order.customerName}
                       </TableCell>
                       <TableCell className="text-default-500 font-light">
-                        {order.date}
+                        {new Date(order.fechaCreacion).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="font-bold text-foreground tracking-tight">
                         $
-                        {order.total.toLocaleString("en-US", {
+                        {(order.total || 0).toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                         })}
                       </TableCell>
 
-                      {/* Estado de Pago PayU */}
+                      {/* Estado de Pago */}
                       <TableCell>
                         <Chip
-                          color={getPaymentStatusColor(order.paymentStatus)}
+                          color={getPaymentStatusColor(order.estado)}
                           variant="flat"
                           size="sm"
                           className="font-medium tracking-wide"
                         >
-                          {order.paymentStatus}
+                          {order.estado}
                         </Chip>
                       </TableCell>
 
-                      {/* Estado de Envío Logístico */}
+                      {/* Estado de Envío */}
                       <TableCell>
                         <Chip
-                          color={getShippingStatusColor(order.shippingStatus)}
+                          color={getShippingStatusColor(order.estado)}
                           variant="dot"
                           size="sm"
                           className="font-medium tracking-wide border-none bg-transparent px-0"
                         >
-                          {order.shippingStatus}
+                          {order.estado}
                         </Chip>
                       </TableCell>
 
@@ -371,7 +454,10 @@ export const ProviderDashboard = () => {
                               variant="flat"
                               color="default"
                               size="sm"
-                              isDisabled={order.paymentStatus !== "Pagado"}
+                              isDisabled={
+                                order.estado === "ENTREGADO" ||
+                                order.estado === "FALLIDO"
+                              }
                               endContent={<ChevronDown size={14} />}
                               className="font-medium"
                             >
@@ -381,19 +467,16 @@ export const ProviderDashboard = () => {
                           <DropdownMenu
                             aria-label="Acciones logísticas"
                             onAction={(key) =>
-                              handleUpdateShipping(
-                                order.id,
-                                key as ShippingStatus,
-                              )
+                              handleUpdateShipping(order.id, key as string)
                             }
                           >
-                            <DropdownItem key="Preparando">
+                            <DropdownItem key="PROCESANDO">
                               Preparando
                             </DropdownItem>
-                            <DropdownItem key="Despachado">
+                            <DropdownItem key="ENVIADO">
                               Despachado
                             </DropdownItem>
-                            <DropdownItem key="Entregado">
+                            <DropdownItem key="ENTREGADO">
                               Entregado
                             </DropdownItem>
                           </DropdownMenu>

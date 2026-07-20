@@ -7,9 +7,12 @@ import { Input } from "@heroui/input";
 import { Tabs, Tab } from "@heroui/tabs";
 import { RadioGroup, Radio } from "@heroui/radio";
 import { Divider } from "@heroui/divider";
+import { Alert } from "@heroui/alert"; // <-- Agregamos el componente Alert
 import { Home, Store } from "lucide-react";
 import { useCartStore } from "../../application/store/useCartStore";
+import { orderService } from "../../infrastructure/services/orderService";
 import { processPayUCheckout } from "../../infrastructure/payments/payuService";
+import { httpClient } from "../../infrastructure/api/httpClient";
 
 export const Checkout = () => {
   const navigate = useNavigate();
@@ -32,6 +35,7 @@ export const Checkout = () => {
   });
   const [metodoPago, setMetodoPago] = useState("tarjeta");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const subtotal = items.reduce(
     (acc, item) => acc + item.precio * item.quantity,
@@ -41,37 +45,48 @@ export const Checkout = () => {
   const taxes = (subtotal - discountAmount) * 0.12;
   const total = subtotal - discountAmount + taxes;
 
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = async () => {
     const code = couponInput.trim().toUpperCase();
-    if (code === "VERANO20") {
-      setDiscountPercent(20);
-      setCouponStatus({
-        message: "¡Cupón aplicado correctamente!",
-        type: "success",
-      });
-    } else if (code === "BLACKFRIDAY") {
-      setDiscountPercent(50);
-      setCouponStatus({
-        message: "¡Descuento de Black Friday aplicado!",
-        type: "success",
-      });
-    } else if (code === "CADUCADO") {
-      setDiscountPercent(0);
-      setCouponStatus({
-        message: "Este código ha expirado.",
-        type: "error",
-      });
-    } else if (code === "") {
+    if (!code) {
       setDiscountPercent(0);
       setCouponStatus({ message: "", type: null });
-    } else {
+      return;
+    }
+
+    try {
+      const response = await httpClient.get("/cupones/validar", {
+        params: { codigo: code },
+      });
+      if (response.data.valido) {
+        setDiscountPercent(response.data.descuento);
+        setCouponStatus({
+          message: `Cupón aplicado (${response.data.descuento}% de descuento)`,
+          type: "success",
+        });
+      } else {
+        setDiscountPercent(0);
+        setCouponStatus({
+          message: response.data.mensaje || "Cupón inválido",
+          type: "error",
+        });
+      }
+    } catch (error: any) {
       setDiscountPercent(0);
-      setCouponStatus({ message: "Cupón inválido.", type: "error" });
+      setCouponStatus({
+        message:
+          error.response?.data?.mensaje ||
+          error.response?.data?.message ||
+          "Error al validar el cupón",
+        type: "error",
+      });
     }
   };
-
+  
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    // Limpiamos el error flotante cuando el usuario empieza a corregir sus datos
+    if (error) setError(null);
+
     if (name === "telefono" || name === "dni") {
       setFormData((prev) => ({ ...prev, [name]: value.replace(/\D/g, "") }));
     } else {
@@ -80,8 +95,11 @@ export const Checkout = () => {
   };
 
   const handleSubmitOrder = async () => {
+    // 1. REEMPLAZO DE ALERTS POR ESTADOS DE ERROR VISUALES
+    setError(null);
+
     if (items.length === 0) {
-      alert("Tu carrito está vacío.");
+      setError("Tu carrito está vacío. Agrega productos para continuar.");
       return;
     }
 
@@ -92,7 +110,7 @@ export const Checkout = () => {
         !formData.telefono.trim() ||
         !formData.direccion.trim()
       ) {
-        alert("Por favor completa los datos obligatorios.");
+        setError("Por favor completa los datos obligatorios para el envío.");
         return;
       }
     }
@@ -100,56 +118,72 @@ export const Checkout = () => {
     setIsSubmitting(true);
 
     try {
-      const referenceCode = "ORD-" + Date.now();
-      const amountStr = Number(total.toFixed(2)).toString();
+      const orderData = {
+        items: items.map((item) => ({
+          productId: String(item.id),
+          quantity: item.quantity,
+        })),
+        deliveryMethod,
+        direccion:
+          deliveryMethod === "domicilio" ? formData.direccion : undefined,
+        referencia: formData.referencia || undefined,
+        nombre: formData.nombre || undefined,
+        dni: formData.dni || undefined,
+        telefono: formData.telefono || undefined,
+        metodoPago,
+        codigoCupon: couponInput.trim() || undefined,
+      };
 
-      // INYECCIÓN ANTIFRAUDE: Añade números aleatorios al correo para burlar el caché de Sandbox
-      const randomSuffix = Math.floor(Math.random() * 100000);
-      const buyerEmail = formData.nombre
-        ? formData.nombre.toLowerCase().replace(/\s/g, "") +
-          randomSuffix +
-          "@test.com"
-        : "cliente" + randomSuffix + "@appcelulares.pe";
+      const order = await orderService.create(orderData);
 
       localStorage.setItem(
         "last_order_data",
         JSON.stringify({
-          formData,
-          items,
-          total,
-          discountPercent,
-          discountAmount,
-          taxes,
+          orderId: order.id,
+          total: order.total,
+          discountPercent: order.descuento > 0 ? discountPercent : 0,
+          discountAmount: order.descuento,
+          taxes: order.impuestos,
+          items: order.items,
+          customerName: order.customerName,
+          customerEmail: order.customerEmail,
+          direccion: order.direccionEntrega || formData.direccion,
         }),
       );
 
-      if (metodoPago === "tarjeta") {
+      if (metodoPago === "tarjeta" && order.payuParams) {
         clearCart();
         await processPayUCheckout({
-          amount: amountStr,
-          buyerEmail,
-          referenceCode,
-          buyerFullName: formData.nombre,
-          payerPhone: formData.telefono,
-          payerDNI: formData.dni,
+          amount: String(order.payuParams.amount),
+          buyerEmail: order.payuParams.buyerEmail,
+          referenceCode: order.payuParams.referenceCode,
+          buyerFullName: order.payuParams.buyerFullName,
+          payerPhone: order.payuParams.payerPhone,
+          payerDNI: order.payuParams.payerDNI,
+          signature: order.payuParams.signature,
         });
       } else {
         clearCart();
-        navigate(
-          `/factura/${referenceCode}?transactionState=4&polPaymentMethod=${metodoPago}`,
-        );
+        navigate(`/factura/${order.id}`);
       }
-    } catch (error) {
-      console.error("Error al procesar el pedido:", error);
-      alert(
-        "Hubo un error al inicializar el pago. Verifica la consola para más detalles.",
-      );
+    } catch (err: any) {
+      const message =
+        err.response?.data?.message ||
+        "Error al procesar el pedido. Inténtalo de nuevo.";
+      setError(message);
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen py-12 lg:py-16 px-4 lg:px-8 max-w-7xl mx-auto">
+    <div className="relative min-h-screen py-12 lg:py-16 px-4 lg:px-8 max-w-7xl mx-auto">
+      {/* 2. ALERTA FLOTANTE: Diseño consistente con el resto de la app */}
+      {error && (
+        <div className="fixed top-6 right-6 z-50 animate-appearance-in">
+          <Alert color="danger" title="Atención" description={error} />
+        </div>
+      )}
+
       <h1 className="text-3xl font-semibold text-foreground mb-10 tracking-tight">
         Finalizar Pedido
       </h1>
@@ -168,7 +202,10 @@ export const Checkout = () => {
                 variant="underlined"
                 color="default"
                 selectedKey={deliveryMethod}
-                onSelectionChange={(k) => setDeliveryMethod(k as string)}
+                onSelectionChange={(k) => {
+                  setDeliveryMethod(k as string);
+                  setError(null); // Limpiamos error al cambiar de pestaña
+                }}
                 className="mb-6"
                 classNames={{
                   cursor: "bg-foreground",

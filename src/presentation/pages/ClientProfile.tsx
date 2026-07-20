@@ -1,10 +1,11 @@
 // src/presentation/pages/ClientProfile.tsx
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Tabs, Tab } from "@heroui/tabs";
 import { Card, CardBody } from "@heroui/card";
 import { Button } from "@heroui/button";
 import { Input } from "@heroui/input";
+import { Alert } from "@heroui/alert"; // <-- Añadido
 import {
   Modal,
   ModalContent,
@@ -37,103 +38,206 @@ import {
 import type { FormaPago } from "../../domain/models/appCelulares.model";
 import { CreditCardDisplay } from "../components/CreditCardDisplay";
 import { useAuthStore } from "../../application/store/useAuthStore";
+import {
+  orderService,
+  type OrderResponse,
+} from "../../infrastructure/services/orderService";
+import {
+  paymentMethodService,
+  type PaymentMethod,
+} from "../../infrastructure/services/paymentMethodService";
+import { httpClient } from "../../infrastructure/api/httpClient";
 
-// ==========================================
-// MOCK DATA: Tarjetas
-// ==========================================
-const MOCK_CARDS: FormaPago[] = [
-  {
-    id: "card-1",
-    usuarioId: "usr-003",
-    numeroTarjeta: "**** **** **** 4242",
-    titular: "Cliente Frecuente",
-    fechaExpiracion: "12/28",
-  },
-  {
-    id: "card-2",
-    usuarioId: "usr-003",
-    numeroTarjeta: "**** **** **** 8899",
-    titular: "Cliente Frecuente",
-    fechaExpiracion: "05/27",
-  },
-];
-
-// ==========================================
-// MOCK DATA: Historial de Pedidos
-// ==========================================
-type OrderStatus = "Procesando" | "Preparando" | "En Camino" | "Entregado";
-
-interface Order {
-  id: string;
-  date: string;
-  total: number;
-  status: OrderStatus;
-}
-
-const MOCK_ORDERS: Order[] = [
-  {
-    id: "ORD-2026-8923",
-    date: "17 Jul 2026",
-    total: 1711.0,
-    status: "Entregado",
-  },
-  {
-    id: "ORD-2026-9041",
-    date: "22 Jul 2026",
-    total: 1200.0,
-    status: "En Camino",
-  },
-  {
-    id: "ORD-2026-9102",
-    date: "25 Jul 2026",
-    total: 850.5,
-    status: "Procesando",
-  },
-];
-
+// Ajustado a los estados reales del backend
 const TRACKING_STEPS = [
-  { label: "Procesando", icon: ClipboardList },
-  { label: "Preparando", icon: Package },
-  { label: "En Camino", icon: Truck },
-  { label: "Entregado", icon: CheckCircle },
+  { label: "Pendiente", icon: ClipboardList, key: "PENDIENTE" },
+  { label: "Procesando", icon: Package, key: "PROCESANDO" },
+  { label: "Enviado", icon: Truck, key: "ENVIADO" },
+  { label: "Entregado", icon: CheckCircle, key: "ENTREGADO" },
 ];
 
 export const ClientProfile = () => {
-  // 1. Consumo del Store de Autenticación
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
 
-  const [cards, setCards] = useState<FormaPago[]>(MOCK_CARDS);
+  // Estado global para notificaciones UI (Reemplaza los alert nativos)
+  const [notification, setNotification] = useState<{
+    message: string;
+    type: "danger" | "success";
+  } | null>(null);
+
+  const showNotification = (
+    message: string,
+    type: "danger" | "success" = "danger",
+  ) => {
+    setNotification({ message, type });
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  // Estados para órdenes
+  const [orders, setOrders] = useState<OrderResponse[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(true);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
+
+  // Estados para tarjetas
+  const [cards, setCards] = useState<PaymentMethod[]>([]);
+  const [isLoadingCards, setIsLoadingCards] = useState(true);
+  const [cardsError, setCardsError] = useState<string | null>(null);
+
+  // Modal agregar tarjeta
   const [isAddCardOpen, setIsAddCardOpen] = useState(false);
-  const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
-
-  // Nuevos estados para el modal de rastreo logístico
-  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-
-  // Estados locales para la tarjeta interactiva
   const [cardNumber, setCardNumber] = useState("");
   const [cardHolder, setCardHolder] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [cvv, setCvv] = useState("");
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isAddingCard, setIsAddingCard] = useState(false);
 
-  const handleDeleteCard = (id: string) => {
-    setCards(cards.filter((c) => c.id !== id));
+  // Modal eliminar cuenta
+  const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  // Modal rastreo
+  const [isTrackingOpen, setIsTrackingOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<OrderResponse | null>(
+    null,
+  );
+
+  // Cargar órdenes
+  const fetchOrders = useCallback(async () => {
+    setIsLoadingOrders(true);
+    setOrdersError(null);
+    try {
+      const data = await orderService.getMyOrders();
+      setOrders(data);
+    } catch (err: any) {
+      setOrdersError(err.response?.data?.message || "Error al cargar pedidos");
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  }, []);
+
+  // Cargar tarjetas
+  const fetchCards = useCallback(async () => {
+    setIsLoadingCards(true);
+    setCardsError(null);
+    try {
+      const data = await paymentMethodService.getMyMethods();
+      setCards(data);
+    } catch (err: any) {
+      setCardsError(
+        err.response?.data?.message || "Error al cargar métodos de pago",
+      );
+    } finally {
+      setIsLoadingCards(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchOrders();
+    fetchCards();
+  }, [fetchOrders, fetchCards]);
+
+  // Manejar eliminación de tarjeta
+  const handleDeleteCard = async (id: string) => {
+    try {
+      await paymentMethodService.delete(id);
+      showNotification("Tarjeta eliminada correctamente", "success");
+      await fetchCards();
+    } catch (err: any) {
+      showNotification(
+        err.response?.data?.message || "Error al eliminar tarjeta",
+        "danger",
+      );
+    }
   };
 
-  const handleConfirmDeleteAccount = () => {
-    alert("Cuenta eliminada exitosamente. Redirigiendo al inicio...");
-    setIsDeleteAccountOpen(false);
-    // Aquí va la lógica real de logout y redirección
+  // Manejar agregar tarjeta
+  const handleAddCard = async () => {
+    if (!cardNumber || !cardHolder || !expiryDate || !cvv) {
+      showNotification(
+        "Por favor completa todos los datos de la tarjeta.",
+        "danger",
+      );
+      return;
+    }
+
+    setIsAddingCard(true);
+    try {
+      await paymentMethodService.add({
+        numeroTarjeta: cardNumber,
+        titular: cardHolder,
+        fechaExpiracion: expiryDate,
+      });
+      setIsAddCardOpen(false);
+      setCardNumber("");
+      setCardHolder("");
+      setExpiryDate("");
+      setCvv("");
+      showNotification("Tarjeta agregada exitosamente", "success");
+      await fetchCards();
+    } catch (err: any) {
+      showNotification(
+        err.response?.data?.message || "Error al agregar tarjeta",
+        "danger",
+      );
+    } finally {
+      setIsAddingCard(false);
+    }
   };
 
-  const handleOpenTracking = (order: Order) => {
+  // Eliminar cuenta
+  const handleConfirmDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      await httpClient.delete("/usuarios/me");
+      logout();
+      navigate("/", { replace: true });
+    } catch (err: any) {
+      showNotification(
+        err.response?.data?.message || "Error al eliminar cuenta",
+        "danger",
+      );
+      setIsDeletingAccount(false);
+      setIsDeleteAccountOpen(false);
+    }
+  };
+
+  // Rastreo
+  const handleOpenTracking = (order: OrderResponse) => {
     setSelectedOrder(order);
     setIsTrackingOpen(true);
   };
 
-  // --- MANEJADORES DE INPUT CON MÁSCARAS NATIVAS ---
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "ENTREGADO":
+        return "success";
+      case "ENVIADO":
+        return "warning";
+      case "PROCESANDO":
+        return "secondary";
+      default:
+        return "default";
+    }
+  };
 
+  const getOrderStepIndex = (status: string) => {
+    switch (status) {
+      case "PENDIENTE":
+        return 0;
+      case "PROCESANDO":
+        return 1;
+      case "ENVIADO":
+        return 2;
+      case "ENTREGADO":
+        return 3;
+      default:
+        return 0;
+    }
+  };
+
+  // Manejadores de inputs para tarjeta (Máscaras nativas)
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, "");
     const formattedValue = value.replace(/(\d{4})(?=\d)/g, "$1 ");
@@ -158,39 +262,19 @@ export const ClientProfile = () => {
     setCvv(value);
   };
 
-  // Helpers de UI para las órdenes
-  const getStatusColor = (status: OrderStatus) => {
-    switch (status) {
-      case "Entregado":
-        return "success";
-      case "En Camino":
-        return "warning";
-      case "Preparando":
-        return "secondary";
-      case "Procesando":
-        return "default";
-      default:
-        return "default";
-    }
-  };
-
-  const getOrderStepIndex = (status: OrderStatus) => {
-    switch (status) {
-      case "Procesando":
-        return 0;
-      case "Preparando":
-        return 1;
-      case "En Camino":
-        return 2;
-      case "Entregado":
-        return 3;
-      default:
-        return 0;
-    }
-  };
-
   return (
-    <div className="container mx-auto px-4 max-w-5xl py-12 flex flex-col gap-10 min-h-screen">
+    <div className="relative container mx-auto px-4 max-w-5xl py-12 flex flex-col gap-10 min-h-screen">
+      {/* Alerta Flotante Global UI */}
+      {notification && (
+        <div className="fixed top-6 right-6 z-50 animate-appearance-in">
+          <Alert
+            color={notification.type}
+            title={notification.type === "danger" ? "Error" : "Éxito"}
+            description={notification.message}
+          />
+        </div>
+      )}
+
       {/* CABECERA */}
       <div>
         <h1 className="text-3xl font-semibold text-foreground tracking-tight">
@@ -201,7 +285,7 @@ export const ClientProfile = () => {
         </p>
       </div>
 
-      {/* CONTENEDOR DE PESTAÑAS */}
+      {/* PESTAÑAS */}
       <Tabs
         aria-label="Opciones de perfil"
         variant="underlined"
@@ -226,8 +310,34 @@ export const ClientProfile = () => {
           }
         >
           <div className="pt-6">
-            <Card className="bg-content1 shadow-none border border-divider rounded-2xl overflow-hidden">
+            <Card className="bg-content1 shadow-none border border-divider rounded-2xl overflow-hidden min-h-[300px] relative">
               <CardBody className="p-0 overflow-x-auto">
+                {/* Capa de Carga / Error sin destruir la estructura */}
+                {isLoadingOrders && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-content1/70 backdrop-blur-sm">
+                    <div className="w-8 h-8 border-3 border-default-200 border-t-foreground rounded-full animate-spin"></div>
+                    <p className="text-default-500 font-light mt-3 text-sm">
+                      Cargando pedidos...
+                    </p>
+                  </div>
+                )}
+
+                {ordersError && !isLoadingOrders && (
+                  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-content1">
+                    <p className="text-danger font-medium mb-3">
+                      {ordersError}
+                    </p>
+                    <Button
+                      color="default"
+                      variant="flat"
+                      onPress={fetchOrders}
+                      size="sm"
+                    >
+                      Reintentar
+                    </Button>
+                  </div>
+                )}
+
                 <Table
                   aria-label="Historial de pedidos del cliente"
                   removeWrapper
@@ -243,7 +353,14 @@ export const ClientProfile = () => {
                     <TableColumn>Estado</TableColumn>
                     <TableColumn align="center">Acciones</TableColumn>
                   </TableHeader>
-                  <TableBody items={MOCK_ORDERS}>
+                  <TableBody
+                    items={orders}
+                    emptyContent={
+                      !isLoadingOrders && !ordersError
+                        ? "Aún no has realizado ningún pedido."
+                        : " "
+                    }
+                  >
                     {(order) => (
                       <TableRow
                         key={order.id}
@@ -253,22 +370,22 @@ export const ClientProfile = () => {
                           {order.id}
                         </TableCell>
                         <TableCell className="text-default-500 font-light">
-                          {order.date}
+                          {new Date(order.fechaCreacion).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="font-medium text-foreground">
                           $
-                          {order.total.toLocaleString("en-US", {
+                          {(order.total || 0).toLocaleString("en-US", {
                             minimumFractionDigits: 2,
                           })}
                         </TableCell>
                         <TableCell>
                           <Chip
-                            color={getStatusColor(order.status)}
+                            color={getStatusColor(order.estado)}
                             variant="flat"
                             size="sm"
                             className="font-medium tracking-wide"
                           >
-                            {order.status}
+                            {order.estado}
                           </Chip>
                         </TableCell>
                         <TableCell>
@@ -336,9 +453,26 @@ export const ClientProfile = () => {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-2">
-                {cards.length === 0 ? (
-                  <p className="text-default-400 font-light text-sm p-4 bg-default-50 rounded-lg border border-divider">
+              {/* Contenedor de Tarjetas con estados de carga/error incorporados */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-2 relative min-h-[120px]">
+                {isLoadingCards ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+                    <div className="w-8 h-8 border-3 border-default-200 border-t-foreground rounded-full animate-spin"></div>
+                  </div>
+                ) : cardsError ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+                    <p className="text-danger font-medium mb-3">{cardsError}</p>
+                    <Button
+                      color="default"
+                      variant="flat"
+                      onPress={fetchCards}
+                      size="sm"
+                    >
+                      Reintentar
+                    </Button>
+                  </div>
+                ) : cards.length === 0 ? (
+                  <p className="col-span-full text-default-400 font-light text-sm p-4 bg-default-50 rounded-lg border border-divider">
                     No tienes tarjetas registradas.
                   </p>
                 ) : (
@@ -405,7 +539,7 @@ export const ClientProfile = () => {
         </Tab>
       </Tabs>
 
-      {/* MODAL: RASTREO LOGÍSTICO (STEPPER) */}
+      {/* MODAL: RASTREO LOGÍSTICO */}
       <Modal
         isOpen={isTrackingOpen}
         onOpenChange={setIsTrackingOpen}
@@ -422,12 +556,10 @@ export const ClientProfile = () => {
           </ModalHeader>
           <ModalBody className="py-8 px-6">
             <div className="relative flex flex-col gap-8 ml-4">
-              {/* Línea vertical de conexión */}
               <div className="absolute left-[19px] top-2 bottom-2 w-0.5 bg-default-200 z-0" />
-
               {TRACKING_STEPS.map((step, idx) => {
                 const currentStepIndex = selectedOrder
-                  ? getOrderStepIndex(selectedOrder.status)
+                  ? getOrderStepIndex(selectedOrder.estado)
                   : 0;
                 const isActive = idx <= currentStepIndex;
                 const isCurrent = idx === currentStepIndex;
@@ -574,7 +706,8 @@ export const ClientProfile = () => {
             <Button
               color="default"
               className="font-medium bg-foreground text-background shadow-none"
-              onPress={() => setIsAddCardOpen(false)}
+              onPress={handleAddCard}
+              isLoading={isAddingCard}
             >
               Guardar Tarjeta
             </Button>
@@ -616,6 +749,7 @@ export const ClientProfile = () => {
             <Button
               color="danger"
               onPress={handleConfirmDeleteAccount}
+              isLoading={isDeletingAccount}
               className="font-medium shadow-none"
             >
               Sí, eliminar cuenta

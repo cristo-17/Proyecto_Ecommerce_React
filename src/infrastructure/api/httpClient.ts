@@ -6,7 +6,7 @@ import { useAuthStore } from "../../application/store/useAuthStore";
 // 1. Instancia Base
 // ==========================================
 export const httpClient = axios.create({
-  baseURL: "http://localhost:8080/api",
+  baseURL: "/api",  // antes: "http://localhost:8080/api"
   headers: {
     "Content-Type": "application/json",
   },
