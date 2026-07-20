@@ -367,7 +367,7 @@ export const ClientProfile = () => {
                         className="hover:bg-default-50 transition-colors"
                       >
                         <TableCell className="font-medium text-foreground tracking-tight">
-                          {order.id}
+                          {order.codigoOrden || order.id}
                         </TableCell>
                         <TableCell className="text-default-500 font-light">
                           {new Date(order.fechaCreacion).toLocaleDateString()}

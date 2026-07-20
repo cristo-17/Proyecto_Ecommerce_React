@@ -50,11 +50,25 @@ export const Factura = () => {
 
   useEffect(() => {
     const fetchOrder = async () => {
-      if (!id) return;
+      if (!id && !referenceCode) return;
       setIsLoading(true);
       setError(null);
       try {
-        const data = await orderService.getById(id);
+        let data;
+        if (id) {
+          try {
+            data = await orderService.getById(id);
+          } catch (err) {
+            // Si falla con id, intentar con referenceCode
+            if (referenceCode) {
+              data = await orderService.getByReferenceCode(referenceCode);
+            } else {
+              throw err;
+            }
+          }
+        } else if (referenceCode) {
+          data = await orderService.getByReferenceCode(referenceCode);
+        }
         setOrderData(data);
       } catch (err: any) {
         setError(err.response?.data?.message || "Error al cargar la orden.");
@@ -63,7 +77,7 @@ export const Factura = () => {
       }
     };
     fetchOrder();
-  }, [id]);
+  }, [id, referenceCode]);
 
   const getStatusInfo = () => {
     const effectiveState =
@@ -163,7 +177,8 @@ export const Factura = () => {
   }
 
   const statusInfo = getStatusInfo();
-  const orderNumber = id || referenceCode || "ORD-00000000";
+  const orderNumber =
+    orderData?.codigoOrden || id || referenceCode || "ORD-00000000";
 
   const customerName = orderData.customerName || "Cliente Anónimo";
   const customerEmail = orderData.customerEmail || "cliente@appcelulares.pe";

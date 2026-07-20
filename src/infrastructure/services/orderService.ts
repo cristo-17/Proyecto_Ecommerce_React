@@ -1,4 +1,4 @@
-import { httpClient } from '../api/httpClient';
+import { httpClient } from "../api/httpClient";
 
 export interface OrderItemRequest {
   productId: string;
@@ -34,7 +34,7 @@ export interface OrderResponse {
 
 export const orderService = {
   async create(data: OrderRequest): Promise<OrderResponse> {
-    const response = await httpClient.post<OrderResponse>('/pedidos', data);
+    const response = await httpClient.post<OrderResponse>("/pedidos", data);
     return response.data;
   },
 
@@ -43,15 +43,29 @@ export const orderService = {
     return response.data;
   },
 
-  async getMyOrders(): Promise<OrderResponse[]> {
-    const response = await httpClient.get<OrderResponse[]>('/pedidos');
+  async getByReferenceCode(codigoReferencia: string): Promise<OrderResponse> {
+    const response = await httpClient.get<OrderResponse>(
+      `/pedidos/referencia/${codigoReferencia}`,
+    );
     return response.data;
   },
 
-  async updateShippingStatus(id: string, estado: string): Promise<OrderResponse> {
-    const response = await httpClient.patch<OrderResponse>(`/pedidos/${id}/estado-envio`, null, {
-      params: { estado },
-    });
+  async getMyOrders(): Promise<OrderResponse[]> {
+    const response = await httpClient.get<OrderResponse[]>("/pedidos");
+    return response.data;
+  },
+
+  async updateShippingStatus(
+    id: string,
+    estado: string,
+  ): Promise<OrderResponse> {
+    const response = await httpClient.patch<OrderResponse>(
+      `/pedidos/${id}/estado-envio`,
+      null,
+      {
+        params: { estado },
+      },
+    );
     return response.data;
   },
 };

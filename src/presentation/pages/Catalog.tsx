@@ -1,4 +1,5 @@
 // src/presentation/pages/Catalog.tsx
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardBody, CardFooter } from "@heroui/card";
 import { Image } from "@heroui/image";
@@ -10,8 +11,6 @@ import { SearchX, Search } from "lucide-react";
 
 // Importación exclusiva de nuestra lógica separada (Clean Architecture)
 import { useCatalogFilters } from "../../application/hooks/useCatalogFilters";
-
-const AVAILABLE_BRANDS = ["Apple", "Samsung", "Xiaomi", "Google", "Motorola"];
 
 export const Catalog = () => {
   const navigate = useNavigate();
@@ -29,6 +28,45 @@ export const Catalog = () => {
     error,
   } = useCatalogFilters();
 
+  // Estado para las marcas dinámicas
+  const [availableBrands, setAvailableBrands] = useState<string[]>([]);
+
+  // Cargar marcas desde el backend
+  useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const response = await fetch("/api/marcas");
+        const data = await response.json();
+        setAvailableBrands(data.map((m: any) => m.nombre));
+      } catch (error) {
+        // Fallback por si falla la API
+        setAvailableBrands([
+          "Apple",
+          "Samsung",
+          "Xiaomi",
+          "Google",
+          "Motorola",
+        ]);
+      }
+    };
+    fetchBrands();
+  }, []);
+
+  // Si está cargando, mostramos un mensaje amigable
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-12 max-w-7xl font-sans">
+        <div className="flex flex-col items-center justify-center py-32 text-center">
+          <p className="text-default-500 font-light text-lg">
+            Cargando catálogo...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si hay error, mostramos mensaje y botón de reintento (opcional, puedes manejarlo como prefieras)
+  // Por ahora, mostraremos el error dentro del layout normal.
   const hasError = !!error;
 
   return (
@@ -79,7 +117,7 @@ export const Catalog = () => {
                 Marcas
               </h3>
               <div className="flex flex-col gap-4">
-                {AVAILABLE_BRANDS.map((brand) => (
+                {availableBrands.map((brand) => (
                   <Checkbox
                     key={brand}
                     isSelected={selectedBrands.includes(brand)}
