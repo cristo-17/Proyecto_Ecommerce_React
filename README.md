@@ -1,6 +1,18 @@
 # AppCelulares - Plataforma E-Commerce (Frontend)
 
-Una plataforma de comercio electrónico moderna, escalable y de alto rendimiento diseñada para la venta y gestión de equipos móviles. Este proyecto implementa un frontend robusto basado en **Clean Architecture** y principios SOLID, preparado estructuralmente para integrarse de forma nativa con una futura API RESTful en Java (Spring Boot).
+Una plataforma de comercio electrónico moderna, escalable y de alto rendimiento diseñada para la venta y gestión de equipos móviles. Este proyecto implementa un frontend robusto basado en **Clean Architecture** y principios SOLID, operando bajo un modelo de control de acceso basado en roles (RBAC) y preparado estructuralmente para comunicarse con una API RESTful en Java (Spring Boot).
+
+---
+
+## Descripción del Proyecto y Flujo de la Aplicación
+
+AppCelulares no es solo una tienda virtual; es un sistema de gestión integral donde conviven tres tipos de usuarios en un ecosistema seguro:
+
+1. **El Cliente:** Navega por un catálogo dinámico con filtros avanzados (marca, precio), visualiza detalles técnicos, maneja un carrito de compras interactivo y finaliza sus pedidos mediante una integración de pagos segura (PayU). También cuenta con un panel para gestionar sus tarjetas y revisar el estado logístico de sus compras.
+2. **El Proveedor:** Cuenta con un entorno privado (Dashboard) donde puede publicar nuevos equipos celulares, actualizar especificaciones y controlar su inventario de forma autónoma.
+3. **El Administrador:** Tiene una visión panorámica de toda la plataforma. Supervisa el inventario global, gestiona el alta/baja de las empresas proveedoras, crea cupones de descuento y visualiza métricas de ingresos globales.
+
+El sistema garantiza que los datos sensibles se mantengan seguros mediante autenticación JWT, interceptores HTTP y protección de rutas en el lado del cliente.
 
 ---
 
@@ -9,164 +21,98 @@ Una plataforma de comercio electrónico moderna, escalable y de alto rendimiento
 El stack tecnológico fue seleccionado bajo estrictos estándares de ingeniería de software para garantizar tipado seguro, rendimiento y mantenibilidad:
 
 *   **Core:** React 18 + TypeScript + Vite.
-*   **Estilos y UI:** Tailwind CSS v4 + HeroUI v3.
-    *   *Nota Arquitectónica:* Se ha aplicado una **regla inquebrantable de importaciones granulares** (ej. `@heroui/button`, `@heroui/card`) para maximizar el *tree-shaking* y optimizar el tamaño del bundle final.
-*   **Iconografía Vectorial:** **Lucide React**. Se sustituyó la iconografía estándar (emojis) por un ecosistema de iconos SVG profesionales y uniformes.
-*   **Enrutamiento:** React Router DOM v6/v7 (con protección de rutas por roles).
+*   **Gestión de Estado:** **Zustand** (con persistencia en `localStorage` para el carrito y la sesión de usuario).
+*   **Cliente HTTP:** Axios (con interceptores para inyección automática de tokens JWT y manejo de errores 401).
+*   **Estilos y UI:** Tailwind CSS v4 + HeroUI.
+    *   *Nota Arquitectónica:* Se aplicó una regla inquebrantable de importaciones granulares (ej. `@heroui/button`) para maximizar el *tree-shaking* y optimizar el tamaño del bundle final.
+*   **Iconografía Vectorial:** Lucide React (ecosistema de iconos SVG profesionales).
+*   **Enrutamiento:** React Router DOM (con protección estricta de rutas por roles).
 *   **Formularios y Validación:** React Hook Form + Zod (Type-Safe forms).
 *   **Visualización de Datos:** Recharts (para analíticas del Dashboard).
 
 ---
 
-## Características Principales (Features)
+## Arquitectura del Proyecto (Clean Architecture)
 
-*   **Sistema Multi-Rol Seguro (RBAC):** Control de acceso estricto mediante *Guards* para CLIENTE, PROVEEDOR y ADMIN. La interfaz transmuta dinámicamente según el rol autorizado.
-*   **Gestión Dinámica de Perfiles (Cliente):** 
-    *   Panel de gestión segura de formas de pago (tarjetas censuradas).
-    *   **Zona Peligrosa:** Implementación de flujos de eliminación de cuenta ("Derecho al Olvido") con modales de confirmación crítica.
-*   **Gestión Avanzada de Proveedores (Admin):** 
-    *   Módulo administrativo para el control de empresas registradas.
-    *   Soporte para cambios de estado (Activo/Inactivo).
-    *   Simulación de **borrado en cascada** (advertencias críticas sobre la eliminación del inventario asociado).
-*   **Dashboard Analítico Inteligente:** 
-    *   **Admin:** Vista panorámica global y gráficos interactivos de rendimiento de ventas de todo el sistema.
-    *   **Proveedor:** Entorno aislado con métricas propias y control exclusivo sobre su stock registrado.
-*   **Catálogo y Detalles Técnicos:** Grilla de productos responsiva y vista de producto enfocada en la conversión, con renderizado condicional del "Call to Action" y módulo de reseñas.
-*   **Checkout Optimizado:** Flujo de pago con carrito interactivo y cálculos dinámicos.
-
----
-
-## Estructura del Proyecto (Clean Architecture)
-
-El proyecto respeta una separación estricta de responsabilidades, aislando la lógica de negocio de la interfaz de usuario:
+El proyecto respeta una separación estricta de responsabilidades, aislando la lógica de negocio de la interfaz de usuario. Esto permite que el código sea testeable, escalable y fácil de mantener.
 
 ```text
 app-celulares/
-├── public/                 # Assets estáticos
+├── public/                 # Assets estáticos y configuraciones públicas
 ├── src/
-│   ├── application/        # Lógica de aplicación, Hooks personalizados y Context/Zustand
-│   ├── domain/             # Modelos (Interfaces TS, ej: appCelulares.model.ts) y reglas puras
-│   ├── infrastructure/     # Capa de red, configuración de Axios y servicios de API
-│   └── presentation/       # Interfaz de Usuario (UI)
-│       ├── components/     # Componentes visuales reutilizables y Guards (ProtectedRoute)
-│       ├── layouts/        # Estructuras maestras (MainLayout, DashboardLayout)
+│   ├── application/        # Casos de uso de la app: Hooks personalizados (useCatalogFilters) y Stores de Zustand
+│   ├── domain/             # Núcleo del negocio: Modelos, Interfaces TS (appCelulares.model.ts) y Types
+│   ├── infrastructure/     # Comunicación externa: Cliente Axios, servicios de API y pasarelas de pago (PayU)
+│   └── presentation/       # Interfaz de Usuario (UI) visual
+│       ├── components/     # Componentes visuales reutilizables y Guards de seguridad (ProtectedRoute)
+│       ├── layouts/        # Estructuras maestras (MainLayout para tienda, DashboardLayout para backoffice)
 │       ├── pages/          # Vistas principales (Catalog, Dashboard, ClientProfile)
 │       └── router/         # Configuración centralizada de rutas (App.tsx)
-├── eslint.config.js        # Configuración estricta de linter
-├── tailwind.config.js      # Configuración base de Tailwind v4 y plugins
-└── package.json            # Dependencias modulares y granulares
+├── eslint.config.js        # Configuración estricta de linter para calidad de código
+├── tailwind.config.ts      # Configuración base de Tailwind y plugins
+└── package.json            # Dependencias modulares
+```
+
+Sistema de Enrutamiento y Seguridad (RBAC)
+La navegación de la aplicación está rigurosamente protegida por el componente ProtectedRoute, el cual evalúa el estado de autenticación y el rol del usuario almacenado en Zustand.
+
+El archivo App.tsx organiza las rutas en tres zonas principales:
+
+1. Zona de Autenticación
+/login: Única puerta de entrada al sistema para acceder a funciones privadas.
+
+2. Zona Pública y Clientes (MainLayout)
+Renderiza el encabezado público y el pie de página de la tienda.
+
+Públicas: / (Catálogo general), /producto/:id (Detalles), /cart (Carrito de compras). Accesibles para invitados y usuarios logueados.
+
+Privadas (Solo Cliente/Admin): /checkout (Validación de stock final y pasarela de pago).
+
+Privadas (Solo Cliente): /perfil (Historial de pedidos, rastreo logístico, gestión de métodos de pago y eliminación de cuenta).
+
+3. Zona de Gestión Empresarial (DashboardLayout)
+Renderiza la barra lateral (Sidebar) de administración y métricas.
+
+Privadas (Admin y Proveedor):
+
+/dashboard: Analíticas (El Admin ve todo el sistema; el Proveedor solo su empresa).
+
+/dashboard/proveedores: El Admin gestiona empresas (CRUD); el Proveedor edita su propio perfil fiscal.
+
+/dashboard/inventario: El Admin tiene vista de solo lectura; el Proveedor tiene control total de altas, bajas y modificaciones de su stock.
+
+Características Principales (Features)
+Motor de Filtros Optimizado: El catálogo cuenta con un buscador con Debounce y filtros dinámicos por marca y precio que construyen consultas complejas optimizando el rendimiento de la red.
+
+Validación de Stock en Tiempo Real: El sistema evita ventas "fantasma" cruzando la información del carrito contra la base de datos milisegundos antes del pago.
+
+Integración PayU Latam: Creación dinámica de firmas criptográficas (MD5) e inyección de formularios ocultos para delegar el cobro a una entidad certificada.
+
+Zona Peligrosa (Derecho al Olvido): Implementación de flujos de eliminación de cuenta de usuario con modales de confirmación crítica.
+
+Simulación de Borrado en Cascada: Módulo administrativo con advertencias críticas sobre la eliminación de un proveedor y la repercusión directa sobre el inventario y las reseñas asociadas.
 
 Instrucciones de Instalación y Uso
-Sigue estos pasos para levantar el entorno de desarrollo local.
+Sigue estos pasos para levantar el entorno de desarrollo local y conectar el frontend con el backend.
 
 1. Clonar el repositorio
-```bash
-git clone https://github.com/tu-usuario/app-celulares.git
+```Bash
+git clone [https://github.com/tu-usuario/app-celulares.git](https://github.com/tu-usuario/app-celulares.git)
 cd app-celulares
-
+```
 2. Instalar dependencias
-Debido a la arquitectura modular de HeroUI, todas las dependencias están separadas por paquetes individuales para mantener el entorno ligero.
-Bash```
+Debido a la arquitectura modular de HeroUI y las librerías implementadas, instala las dependencias utilizando NPM.
+
+```Bash
 npm install
+```
+3. Configuración del Servidor de Desarrollo
+El proyecto utiliza Vite. Se ha configurado un proxy en vite.config.ts para evitar errores de CORS durante el desarrollo, redirigiendo las peticiones de /api hacia el backend en Spring Boot (http://localhost:8080).
 
-3. Levantar el servidor de desarrollo
-Inicia Vite con Hot Module Replacement (HMR).
-Bash```
+4. Levantar la aplicación
+Inicia el entorno de desarrollo con Hot Module Replacement (HMR).
+
+```Bash
 npm run dev
-
-
+```
 El proyecto estará disponible localmente en http://localhost:5173/.
-
----
-
-### 2. Enrutador Principal Final (`src/presentation/router/App.tsx`)
-
-Este archivo consolida todas las rutas, anidamientos de Layouts y la protección de accesos basados en roles.
-
-```tsx
-// src/presentation/router/App.tsx
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-
-// 1. Layouts
-import { MainLayout } from '../layouts/MainLayout';
-import { DashboardLayout } from '../layouts/DashboardLayout';
-
-// 2. Guards
-import { ProtectedRoute } from '../components/ProtectedRoute';
-
-// 3. Pages
-import { Login } from '../pages/Login';
-import { Catalog } from '../pages/Catalog';
-import { ProductDetails } from '../pages/ProductDetails';
-import { Cart } from '../pages/Cart';
-import { Checkout } from '../pages/Checkout';
-import { ClientProfile } from '../pages/ClientProfile';
-import { Dashboard } from '../pages/Dashboard';
-import { ProveedorForm } from '../pages/ProveedorForm';
-import { ProviderDashboard } from '../pages/ProviderDashboard';
-import { NotFound } from '../pages/NotFound';
-
-export const AppRouter = () => {
-  return (
-    <BrowserRouter>
-      <Routes>
-        
-        {/* ==========================================
-            ZONA DE AUTENTICACIÓN
-            ========================================== */}
-        <Route path="/login" element={<Login />} />
-
-
-        {/* ==========================================
-            ZONA PÚBLICA Y CLIENTES (MainLayout)
-            ========================================== */}
-        <Route path="/" element={<MainLayout />}>
-          
-          {/* Rutas 100% Públicas */}
-          <Route index element={<Catalog />} />
-          <Route path="producto/:id" element={<ProductDetails />} />
-          <Route path="cart" element={<Cart />} />
-
-          {/* Rutas Protegidas - Checkout Compartido */}
-          <Route element={<ProtectedRoute allowedRoles={['CLIENTE', 'ADMIN']} />}>
-            <Route path="checkout" element={<Checkout />} />
-          </Route>
-
-          {/* Rutas Protegidas - Módulo de Cliente */}
-          <Route element={<ProtectedRoute allowedRoles={['CLIENTE']} />}>
-            <Route path="perfil" element={<ClientProfile />} />
-          </Route>
-
-        </Route>
-
-
-        {/* ==========================================
-            ZONA DE GESTIÓN EMPRESARIAL (DashboardLayout)
-            ========================================== */}
-        <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['ADMIN', 'PROVEEDOR']} />}>
-          
-          <Route element={<DashboardLayout />}>
-            
-            {/* Analíticas y Panel Principal */}
-            <Route index element={<Dashboard />} />
-            
-            {/* Gestión de Perfil de Empresa / Control Global */}
-            <Route path="proveedores" element={<ProveedorForm />} />
-            
-            {/* Gestión de Inventario */}
-            <Route path="inventario" element={<ProviderDashboard />} />
-            
-          </Route>
-
-        </Route>
-
-
-        {/* ==========================================
-            MANEJO DE ERRORES (Wildcard 404)
-            ========================================== */}
-        <Route path="*" element={<NotFound />} />
-        
-      </Routes>
-    </BrowserRouter>
-  );
-};
